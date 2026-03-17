@@ -227,22 +227,22 @@ function Dashboard() {
   }, [evolutionTotal])
 
   return (
-    <main className="min-h-screen bg-[#05070b] text-zinc-100">
-      <header className="border-b border-zinc-900/80 bg-[#04060a]">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 md:px-8">
+    <main className="min-h-screen bg-[#05070b] text-[#e9f0ff]">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-zinc-800/70 bg-[#04060a]/70 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 md:px-8 md:py-4">
           <div className="flex items-center gap-7">
-            <img src={flammaLogo} alt="Flamma" className="h-6 w-auto text-zinc-100" />
+            <img src={flammaLogo} alt="Flamma" className="h-8 w-auto md:h-10" />
             <nav className="hidden items-center gap-2 md:flex">
-              <button className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-100">
+              <button className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm font-medium text-[#e9f0ff]">
                 {text.navOverview}
               </button>
-              <button className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900/90 hover:text-zinc-200">
+              <button className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900/90 hover:text-[#e9f0ff]">
                 {text.navFlow}
               </button>
-              <button className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900/90 hover:text-zinc-200">
+              <button className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900/90 hover:text-[#e9f0ff]">
                 {text.navAssets}
               </button>
-              <button className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900/90 hover:text-zinc-200">
+              <button className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-900/90 hover:text-[#e9f0ff]">
                 {text.navConnections}
               </button>
             </nav>
@@ -257,7 +257,7 @@ function Dashboard() {
               <button
                 onClick={() => setLanguage('en')}
                 className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  language === 'en' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+                  language === 'en' ? 'bg-zinc-700 text-[#e9f0ff]' : 'text-zinc-400'
                 }`}
               >
                 EN
@@ -265,7 +265,7 @@ function Dashboard() {
               <button
                 onClick={() => setLanguage('pt')}
                 className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  language === 'pt' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+                  language === 'pt' ? 'bg-zinc-700 text-[#e9f0ff]' : 'text-zinc-400'
                 }`}
               >
                 PT
@@ -274,7 +274,7 @@ function Dashboard() {
 
             <button
               onClick={loadDashboard}
-              className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
+              className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-[#e9f0ff] transition hover:border-zinc-500 hover:bg-zinc-800"
             >
               {text.refresh}
             </button>
@@ -282,9 +282,9 @@ function Dashboard() {
         </div>
       </header>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8">
+      <section className="mx-auto w-full max-w-7xl px-4 pb-8 pt-28 md:px-8 md:pt-32">
         <header className="mb-6">
-          <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">{text.overview}</h1>
+          <h1 className="text-4xl font-semibold tracking-tight text-[#e9f0ff]">{text.overview}</h1>
           <p className="mt-2 text-lg text-zinc-500">{text.subtitle}</p>
         </header>
 
@@ -311,7 +311,7 @@ function Dashboard() {
                     <p className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-500">{text.bankAccounts}</p>
                   </div>
                 </div>
-                <p className="px-5 text-[2.15rem] font-semibold text-zinc-100">{formatMoney(bankBalanceTotal)}</p>
+                <p className="px-5 text-[2.15rem] font-semibold text-[#e9f0ff]">{formatMoney(bankBalanceTotal)}</p>
                 <div className="mt-4 space-y-0">
                   {bankAccounts.slice(0, 4).map((account) => (
                     <div
@@ -326,11 +326,11 @@ function Dashboard() {
                             className="h-6 w-6 rounded-md"
                           />
                         ) : (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-zinc-700 text-[10px] font-semibold text-zinc-200">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-zinc-700 text-[10px] font-semibold text-[#e9f0ff]">
                             {getInstitutionName(account).slice(0, 2).toUpperCase()}
                           </span>
                         )}
-                        <span className="text-sm text-zinc-200">{getInstitutionName(account)}</span>
+                        <span className="text-sm text-[#e9f0ff]">{getInstitutionName(account)}</span>
                       </span>
                       <span className="text-base font-semibold text-emerald-400">
                         {formatMoney(Number(account.balance) || 0)}
@@ -378,12 +378,12 @@ function Dashboard() {
                             className="h-5 w-5 rounded-md"
                           />
                         ) : (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-zinc-700 text-[10px] font-semibold text-zinc-200">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-zinc-700 text-[10px] font-semibold text-[#e9f0ff]">
                             {getInstitutionName(account).slice(0, 2).toUpperCase()}
                           </span>
                         )}
                         <div>
-                          <p className="text-sm text-zinc-100">{account.name || getInstitutionName(account)}</p>
+                          <p className="text-sm text-[#e9f0ff]">{account.name || getInstitutionName(account)}</p>
                           <p className="text-xs text-zinc-500">
                             xxxx {account.number || '----'}
                           </p>
@@ -431,7 +431,7 @@ function Dashboard() {
                 </h2>
                 <span className="text-xs text-zinc-500">{text.monthlyView}</span>
               </div>
-              <p className="text-4xl font-semibold text-zinc-100">{formatMoney(evolutionTotal)}</p>
+              <p className="text-4xl font-semibold text-[#e9f0ff]">{formatMoney(evolutionTotal)}</p>
 
               <div className="mt-4 h-[230px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
