@@ -1,13 +1,6 @@
-# Wallet Hub 💸
+# Personal Wallet Hub 🚀
 
 A personal Open Finance dashboard and wealth tracker. This project integrates with real banking data via the Pluggy API to consolidate transactions and features a custom manual entry system for non-banking benefits (like meal vouchers).
-
-## 🚀 Features
-
-- **Open Finance Integration:** Automated syncing with banks (e.g., Nubank, Inter) using the Pluggy API (Read-only access).
-- **Manual Entries:** Custom form to track non-bank expenses (e.g., Pluxee/Sodexo).
-- **Unified Dashboard:** Centralized view of all automated and manual financial flows.
-- **Bilingual UI:** Built-in toggles to switch the interface between English and Portuguese.
 
 ## 🛠️ Tech Stack
 
