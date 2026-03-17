@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts'
 import { CreditCard, Landmark, TrendingUp } from 'lucide-react'
+import flammaLogo from './assets/flamma-logo.svg'
 import interLogo from './assets/banks/inter.svg'
 import nubankLogo from './assets/banks/nubank.svg'
 
@@ -230,7 +231,7 @@ function Dashboard() {
       <header className="border-b border-zinc-900/80 bg-[#04060a]">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-7">
-            <p className="text-xl font-semibold tracking-tight text-zinc-100">meu.pluggy</p>
+            <img src={flammaLogo} alt="Flamma" className="h-6 w-auto text-zinc-100" />
             <nav className="hidden items-center gap-2 md:flex">
               <button className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-100">
                 {text.navOverview}
