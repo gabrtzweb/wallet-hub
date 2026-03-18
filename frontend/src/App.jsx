@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { CreditCard, Landmark, TrendingUp, Wallet } from 'lucide-react'
+import { CreditCard, Landmark, Languages, Moon, Sun, TrendingUp, Wallet } from 'lucide-react'
 import flammaLogo from './assets/flamma-logo.svg'
 import interLogo from './assets/banks/inter.svg'
 import nubankLogo from './assets/banks/nubank.svg'
@@ -53,6 +53,8 @@ const COPY = {
     navFlow: 'Flow',
     navAssets: 'Assets',
     navConnections: 'Connections',
+    lightMode: 'Light',
+    darkMode: 'Dark',
     classes: 'Classes',
     institutions: 'Institutions',
     loadingDashboard: 'Loading dashboard...',
@@ -88,6 +90,8 @@ const COPY = {
     navFlow: 'Fluxo',
     navAssets: 'Ativos',
     navConnections: 'Conexões',
+    lightMode: 'Claro',
+    darkMode: 'Escuro',
     classes: 'Classes',
     institutions: 'Instituições',
     loadingDashboard: 'Carregando dashboard...',
@@ -139,11 +143,9 @@ const getInstitutionName = (entry) => {
   return DASHBOARD_ITEMS[entry?.itemId] || 'Unknown Institution'
 }
 
-const glassCardClass = 'rounded-xl border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
-const topCardTitleClass = 'text-xs font-semibold uppercase tracking-wider text-zinc-500'
-
 function Dashboard() {
-  const [language, setLanguage] = useState('en')
+  const [theme, setTheme] = useState(() => localStorage.getItem('wallet-hub-theme') || 'dark')
+  const [language, setLanguage] = useState('pt')
   const [bankAccounts, setBankAccounts] = useState([])
   const [creditAccounts, setCreditAccounts] = useState([])
   const [investments, setInvestments] = useState([])
@@ -151,7 +153,45 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    localStorage.setItem('wallet-hub-theme', theme)
+  }, [theme])
+
   const text = COPY[language]
+  const isLightMode = theme === 'light'
+
+  const topCardTitleClass = isLightMode
+    ? 'text-xs font-semibold uppercase tracking-wider text-zinc-600'
+    : 'text-xs font-semibold uppercase tracking-wider text-zinc-500'
+
+  const primaryTextClass = isLightMode ? 'text-zinc-900' : 'text-[#e9f0ff]'
+  const secondaryTextClass = isLightMode ? 'text-zinc-600' : 'text-zinc-500'
+  const navActiveClass = isLightMode
+    ? 'rounded-lg bg-zinc-900 px-2.5 py-1 text-sm font-medium text-white'
+    : 'rounded-lg bg-zinc-800 px-2.5 py-1 text-sm font-medium text-[#e9f0ff]'
+  const navInactiveClass = isLightMode
+    ? 'rounded-lg px-2.5 py-1 text-sm text-zinc-600 transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white'
+    : 'rounded-lg px-2.5 py-1 text-sm text-zinc-400 transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white'
+  const headerControlBaseClass = isLightMode
+    ? 'inline-flex h-8 items-center rounded-lg bg-white px-2.5 text-xs font-medium text-zinc-800 transition hover:bg-[rgba(31,103,255,0.75)]'
+    : 'inline-flex h-8 items-center rounded-lg bg-zinc-900/70 px-2.5 text-xs font-medium text-[#e9f0ff] transition hover:bg-[rgba(31,103,255,0.75)]'
+  const themeToggleClass = `${headerControlBaseClass} gap-1.5`
+  const languageWrapperClass = `${headerControlBaseClass} gap-1.5`
+  const refreshButtonClass = isLightMode
+    ? 'inline-flex h-8 items-center rounded-lg border border-[#1f67ff] bg-[#1f67ff] px-3 text-xs font-semibold text-white transition hover:brightness-95'
+    : 'inline-flex h-8 items-center rounded-lg border border-[#1f67ff] bg-[#1f67ff] px-3 text-xs font-semibold text-white transition hover:brightness-110'
+  const investmentToggleWrapperClass = isLightMode
+    ? 'inline-flex items-center rounded-lg bg-white p-0.5'
+    : 'inline-flex items-center rounded-lg bg-zinc-900/70 p-0.5'
+  const investmentToggleInactiveClass = isLightMode ? 'text-zinc-600' : 'text-zinc-400'
+
+  const glassCardClass = isLightMode
+    ? 'rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(255,255,255,0.72)] backdrop-blur-[8px]'
+    : 'rounded-xl border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
+
+  const headerGlassClass = isLightMode
+    ? 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.08)] bg-[rgba(255,255,255,0.72)] backdrop-blur-[8px]'
+    : 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
 
   const brlFormatter = useMemo(
     () =>
@@ -284,55 +324,48 @@ function Dashboard() {
   }, [evolutionTotal])
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#080A0F] text-[#e9f0ff]">
+    <main className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#0f172a]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}>
 
-      <header className="fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]">
+      <header className={headerGlassClass}>
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-2.5 md:py-3">
           <div className="flex items-center gap-6">
             <img src={flammaLogo} alt="Flamma" className="h-7 w-auto md:h-8" />
             <nav className="hidden items-center gap-1.5 md:flex">
-              <button className="rounded-lg bg-zinc-800 px-2.5 py-1 text-xs font-medium text-[#e9f0ff]">
+              <button className={navActiveClass}>
                 {text.navOverview}
               </button>
-              <button className="rounded-lg px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-900/90 hover:text-[#e9f0ff]">
+              <button className={navInactiveClass}>
                 {text.navFlow}
               </button>
-              <button className="rounded-lg px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-900/90 hover:text-[#e9f0ff]">
+              <button className={navInactiveClass}>
                 {text.navAssets}
               </button>
-              <button className="rounded-lg px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-900/90 hover:text-[#e9f0ff]">
+              <button className={navInactiveClass}>
                 {text.navConnections}
               </button>
             </nav>
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button className="hidden rounded-lg px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-900 md:block">
-              {text.connections}
+            <button
+              onClick={() => setTheme(isLightMode ? 'dark' : 'light')}
+              className={themeToggleClass}
+            >
+              {isLightMode ? <Moon className="h-3.5 w-3.5 shrink-0" /> : <Sun className="h-3.5 w-3.5 shrink-0" />}
+              <span className="leading-none">{isLightMode ? text.darkMode : text.lightMode}</span>
             </button>
 
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-1">
-              <button
-                onClick={() => setLanguage('en')}
-                className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  language === 'en' ? 'bg-zinc-700 text-[#e9f0ff]' : 'text-zinc-400'
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLanguage('pt')}
-                className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                  language === 'pt' ? 'bg-zinc-700 text-[#e9f0ff]' : 'text-zinc-400'
-                }`}
-              >
-                PT
-              </button>
-            </div>
+            <button
+              onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
+              className={languageWrapperClass}
+            >
+              <Languages className="h-3.5 w-3.5 shrink-0" />
+              <span className="leading-none">{language === 'pt' ? 'EN' : 'PT'}</span>
+            </button>
 
             <button
               onClick={loadDashboard}
-              className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-[#e9f0ff] transition hover:border-zinc-500 hover:bg-zinc-800"
+              className={refreshButtonClass}
             >
               {text.refresh}
             </button>
@@ -342,12 +375,12 @@ function Dashboard() {
 
       <section className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-20 pt-24">
         <header className="mb-5">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-white">{text.overview}</h1>
-          <p className="mt-1 text-sm text-white/40">{text.subtitle}</p>
+          <h1 className={`font-display text-2xl font-bold tracking-tight ${isLightMode ? 'text-zinc-900' : 'text-white'}`}>{text.overview}</h1>
+          <p className={`mt-1 text-sm ${isLightMode ? 'text-zinc-600' : 'text-white/40'}`}>{text.subtitle}</p>
         </header>
 
         {loading && (
-          <div className={`${glassCardClass} p-8 text-center text-zinc-300`}>
+          <div className={`${glassCardClass} p-8 text-center ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
             {text.loadingDashboard}
           </div>
         )}
@@ -369,14 +402,14 @@ function Dashboard() {
                     <p className={topCardTitleClass}>{text.bankAccounts}</p>
                   </div>
                 </div>
-                <p className="mt-3 px-4 font-display text-2xl font-bold tabular-nums text-[#e9f0ff]">{formatMoney(bankBalanceTotal)}</p>
+                <p className={`mt-3 px-4 font-display text-2xl font-bold tabular-nums ${primaryTextClass}`}>{formatMoney(bankBalanceTotal)}</p>
                 <div className="mt-3 space-y-0">
                   {sortedBankAccounts.slice(0, 4).map((account) => (
                     <div
                       key={account.id}
                       className="flex items-center justify-between border-t border-zinc-800/70 px-4 py-2.5 text-xs"
                     >
-                      <span className="flex items-center gap-2 text-zinc-300">
+                      <span className={`flex items-center gap-2 ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
                         {getBankLogo(account) ? (
                           <img
                             src={getBankLogo(account)}
@@ -384,13 +417,13 @@ function Dashboard() {
                             className="h-6 w-6 rounded-md"
                           />
                         ) : (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-zinc-700 text-[10px] font-semibold text-[#e9f0ff]">
+                          <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-800' : 'bg-zinc-700 text-[#e9f0ff]'}`}>
                             {getInstitutionName(account).slice(0, 2).toUpperCase()}
                           </span>
                         )}
                         <span>
-                          <p className="text-sm text-[#e9f0ff]">{getInstitutionName(account)}</p>
-                          <p className="text-xs text-zinc-500">
+                          <p className={`text-sm ${primaryTextClass}`}>{getInstitutionName(account)}</p>
+                          <p className={`text-xs ${secondaryTextClass}`}>
                             {text.accountUnit} • {bankBalanceTotal > 0 ? ((Math.abs(Number(account.balance) || 0) / bankBalanceTotal) * 100).toFixed(1) : '0.0'}%
                           </p>
                         </span>
@@ -412,7 +445,7 @@ function Dashboard() {
                 </div>
 
                 <p className="mt-3 px-4 font-display text-2xl font-bold tabular-nums text-rose-400">{formatMoney(creditUsedTotal)}</p>
-                <div className="mt-1.5 flex items-center justify-between px-4 text-xs text-zinc-500">
+                <div className={`mt-1.5 flex items-center justify-between px-4 text-xs ${secondaryTextClass}`}>
                   <span>{creditUsage.toFixed(0)}% {text.limitUsage}</span>
                   <span>{text.usedOf} {formatMoney(creditLimitTotal)}</span>
                 </div>
@@ -440,13 +473,13 @@ function Dashboard() {
                             className="h-5 w-5 rounded-md"
                           />
                         ) : (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-zinc-700 text-[10px] font-semibold text-[#e9f0ff]">
+                          <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-800' : 'bg-zinc-700 text-[#e9f0ff]'}`}>
                             {getInstitutionName(account).slice(0, 2).toUpperCase()}
                           </span>
                         )}
                         <div>
-                          <p className="text-sm text-[#e9f0ff]">{formatCardName(account)}</p>
-                          <p className="text-xs text-zinc-500">
+                          <p className={`text-sm ${primaryTextClass}`}>{formatCardName(account)}</p>
+                          <p className={`text-xs ${secondaryTextClass}`}>
                             xxxx {account.number || '----'}
                           </p>
                         </div>
@@ -455,7 +488,7 @@ function Dashboard() {
                         <p className="text-sm font-semibold tabular-nums text-rose-400">
                           {formatMoney(Math.abs(Number(account.balance) || 0))}
                         </p>
-                        <p className="text-xs tabular-nums text-zinc-500">{text.limitLabel} {formatMoney(Number(getCreditLimit(account)))}</p>
+                        <p className={`text-xs tabular-nums ${secondaryTextClass}`}>{text.limitLabel} {formatMoney(Number(getCreditLimit(account)))}</p>
                       </div>
                     </div>
                   ))}
@@ -468,19 +501,19 @@ function Dashboard() {
                     <TrendingUp className="h-[18px] w-[18px] text-[#1f67ff]" />
                     <p className={topCardTitleClass}>{text.investments}</p>
                   </div>
-                  <div className="inline-flex items-center rounded-lg border border-zinc-800 bg-[#0b0f17] p-0.5">
+                  <div className={investmentToggleWrapperClass}>
                     <button
                       onClick={() => setInvestmentView('classes')}
-                      className={`rounded px-2.5 py-2 text-[10px] font-medium leading-none transition-colors ${
-                        investmentView === 'classes' ? 'bg-[#2a0b16] text-[#ff2f68]' : 'text-white/50'
+                      className={`rounded px-2.5 py-1.5 text-[10px] font-medium leading-none transition-colors ${
+                        investmentView === 'classes' ? 'bg-[rgba(31,103,255,0.75)] text-white' : investmentToggleInactiveClass
                       }`}
                     >
                       {text.classes}
                     </button>
                     <button
                       onClick={() => setInvestmentView('institutions')}
-                      className={`rounded px-2.5 py-2 text-[10px] font-medium leading-none transition-colors ${
-                        investmentView === 'institutions' ? 'bg-[#2a0b16] text-[#ff2f68]' : 'text-white/50'
+                      className={`rounded px-2.5 py-1.5 text-[10px] font-medium leading-none transition-colors ${
+                        investmentView === 'institutions' ? 'bg-[rgba(31,103,255,0.75)] text-white' : investmentToggleInactiveClass
                       }`}
                     >
                       {text.institutions}
@@ -488,12 +521,12 @@ function Dashboard() {
                   </div>
                 </div>
                 <p className="mt-3 px-4 font-display text-2xl font-bold tabular-nums text-emerald-400">{formatMoney(investmentsTotal)}</p>
-                <p className="mt-1.5 px-4 text-sm text-zinc-500">{investmentClassesCount} {text.classes.toLowerCase()} · {investments.length} {text.assetsLabel}</p>
+                <p className={`mt-1.5 px-4 text-sm ${secondaryTextClass}`}>{investmentClassesCount} {text.classes.toLowerCase()} · {investments.length} {text.assetsLabel}</p>
 
                 {investmentView === 'classes' ? (
                   <>
                     <div className="mt-5 border-t border-zinc-800 pt-3.5 px-4 pb-4">
-                      <div className="mb-1.5 flex items-center justify-between text-sm text-zinc-300">
+                      <div className={`mb-1.5 flex items-center justify-between text-sm ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
                         <span>{text.fixedIncome}</span>
                         <span>100.0% &nbsp; {formatMoney(investmentsTotal)}</span>
                       </div>
@@ -508,7 +541,7 @@ function Dashboard() {
                       const percentage = investmentsTotal > 0 ? (entry.total / investmentsTotal) * 100 : 0
                       return (
                         <div key={entry.name}>
-                          <div className="mb-1.5 flex items-center justify-between text-sm text-zinc-300">
+                          <div className={`mb-1.5 flex items-center justify-between text-sm ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
                             <span>{entry.name} ({entry.count})</span>
                             <span>{percentage.toFixed(1)}% &nbsp; {formatMoney(entry.total)}</span>
                           </div>
@@ -533,7 +566,7 @@ function Dashboard() {
                 </h2>
                 <span className="text-xs text-zinc-500">{text.monthlyView}</span>
               </div>
-              <p className="mt-2 font-display text-2xl font-bold tabular-nums text-[#e9f0ff]">{formatMoney(evolutionTotal)}</p>
+              <p className={`mt-2 font-display text-2xl font-bold tabular-nums ${primaryTextClass}`}>{formatMoney(evolutionTotal)}</p>
 
               <div className="mt-3 h-[210px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
