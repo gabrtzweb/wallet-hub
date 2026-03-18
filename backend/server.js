@@ -462,6 +462,7 @@ app.get('/api/dashboard-data', async (req, res) => {
       bankAccounts,
       creditCards,
       investments,
+      transactions: allTransactions,
       balanceEvolution,
       failedItems,
     });
