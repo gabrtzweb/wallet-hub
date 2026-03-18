@@ -15,6 +15,12 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+const sendPrettyJson = (res, statusCode, payload) => {
+  res.status(statusCode);
+  res.type('application/json');
+  res.send(JSON.stringify(payload, null, 2));
+};
+
 const FALLBACK_ITEM_IDS = [
   '115ae3ff-be4b-4330-8278-7de1d99e3a7b',
   '481ff23b-9bf0-4618-8c94-f046a27fbbc9',
@@ -42,14 +48,9 @@ const fetchConnectedItemIds = async () => {
     return getArrayResults(itemsPage).map((item) => item.id).filter(Boolean);
   }
 
-  try {
-    if (typeof pluggyClient.createGetRequest === 'function') {
-      const itemsPage = await pluggyClient.createGetRequest('items');
-      return getArrayResults(itemsPage).map((item) => item.id).filter(Boolean);
-    }
-  } catch (error) {
-    console.warn('GET /items is not available, falling back to configured item IDs.');
-  }
+  // The current SDK version does not expose listItems();
+  // use configured IDs directly to avoid unauthorized /items probing.
+  console.warn('listItems() is unavailable in this SDK version, using configured item IDs.');
 
   const configuredIds = getConfiguredItemIds();
   if (configuredIds.length > 0) {
@@ -76,7 +77,7 @@ app.get('/api/debug/pluggy', async (req, res) => {
     // Try to fetch accounts for the first configured item to test credentials
     const itemIds = getConfiguredItemIds();
     if (itemIds.length === 0) {
-      return res.status(400).json({
+      return sendPrettyJson(res, 400, {
         credentials: credentialsInfo,
         error: 'No item IDs configured in PLUGGY_DASHBOARD_ITEM_IDS',
       });
@@ -85,14 +86,14 @@ app.get('/api/debug/pluggy', async (req, res) => {
     try {
       const firstItemId = itemIds[0];
       const testAccounts = await pluggyClient.fetchAccounts(firstItemId);
-      return res.json({
+      return sendPrettyJson(res, 200, {
         credentials: credentialsInfo,
         pluggyConnected: true,
         testResult: `✓ Successfully fetched accounts for item ${firstItemId.substring(0, 8)}...`,
         accountsFound: getArrayResults(testAccounts).length,
       });
     } catch (fetchError) {
-      return res.status(401).json({
+      return sendPrettyJson(res, 401, {
         credentials: credentialsInfo,
         pluggyConnected: false,
         error: 'Failed to authenticate with Pluggy API',
@@ -101,7 +102,7 @@ app.get('/api/debug/pluggy', async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Debug endpoint failed', details: error.message });
+    sendPrettyJson(res, 500, { error: 'Debug endpoint failed', details: error.message });
   }
 });
 
