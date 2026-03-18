@@ -32,6 +32,126 @@ const getArrayResults = (payload) => {
   return [];
 };
 
+const toIsoDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const toDisplayDate = (date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}`;
+};
+
+const getTransactionAmount = (transaction) => {
+  const candidate =
+    transaction?.amount ??
+    transaction?.value ??
+    transaction?.paymentData?.amount ??
+    transaction?.paymentAmount ??
+    0;
+
+  const parsed = Number(candidate);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getTransactionDate = (transaction) => {
+  const rawDate =
+    transaction?.date ||
+    transaction?.paymentDate ||
+    transaction?.createdAt ||
+    transaction?.created_at ||
+    transaction?.competencyDate ||
+    null;
+
+  if (!rawDate) return null;
+
+  const parsed = new Date(rawDate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const fetchTransactionsForItem = async (itemId, knownAccounts = []) => {
+  const accounts = knownAccounts.length > 0 ? knownAccounts : getArrayResults(await pluggyClient.fetchAccounts(itemId));
+
+  const transactionPages = await Promise.allSettled(
+    accounts.map((account) => pluggyClient.fetchTransactions(account.id))
+  );
+
+  const mergedTransactions = [];
+
+  transactionPages.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      mergedTransactions.push(...getArrayResults(result.value));
+      return;
+    }
+
+    const account = accounts[index];
+    console.warn(
+      `Failed to fetch transactions for account ${account?.id || 'unknown'} (${account?.name || 'unnamed'}) in item ${itemId}:`,
+      result.reason?.message || result.reason
+    );
+  });
+
+  return mergedTransactions;
+};
+
+const buildMonthlyBalanceEvolution = ({ currentTotal, transactions, accountTypeById }) => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const dayCount = today.getDate();
+
+  const dailyImpacts = new Map();
+
+  transactions.forEach((transaction) => {
+    const transactionDate = getTransactionDate(transaction);
+    if (!transactionDate) return;
+
+    if (
+      transactionDate.getFullYear() !== year ||
+      transactionDate.getMonth() !== month ||
+      transactionDate.getDate() > dayCount
+    ) {
+      return;
+    }
+
+    const accountId = transaction?.accountId || transaction?.account?.id || null;
+    const accountType = accountTypeById.get(accountId) || transaction?.account?.type || 'BANK';
+    const amount = getTransactionAmount(transaction);
+
+    // For CREDIT accounts, used amount behaves as inverse of account balance variation.
+    const impact = accountType === 'CREDIT' ? -amount : amount;
+    const dateKey = toIsoDate(transactionDate);
+
+    dailyImpacts.set(dateKey, (dailyImpacts.get(dateKey) || 0) + impact);
+  });
+
+  const monthImpactTotal = Array.from(dailyImpacts.values()).reduce((sum, value) => sum + value, 0);
+  const openingTotal = currentTotal - monthImpactTotal;
+
+  let runningImpact = 0;
+
+  const points = Array.from({ length: dayCount }, (_, index) => {
+    const day = index + 1;
+    const currentDate = new Date(year, month, day);
+    const dateKey = toIsoDate(currentDate);
+
+    runningImpact += dailyImpacts.get(dateKey) || 0;
+    const computedValue = openingTotal + runningImpact;
+    const value = day === dayCount ? currentTotal : computedValue;
+
+    return {
+      day: String(day).padStart(2, '0'),
+      fullDate: toDisplayDate(currentDate),
+      value: Number(value.toFixed(2)),
+    };
+  });
+
+  return points;
+};
+
 const getConfiguredItemIds = () => {
   const envItemIds = process.env.PLUGGY_DASHBOARD_ITEM_IDS;
   if (!envItemIds) return [];
@@ -122,29 +242,12 @@ app.get('/api/accounts/:itemId', async (req, res) => {
 app.get('/api/transactions/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
+    const mergedTransactions = await fetchTransactionsForItem(itemId);
 
-    try {
-      // Keeps the requested SDK call pattern for compatibility with your requirement.
-      const transactions = await pluggyClient.fetchTransactions(itemId);
-      return res.json(transactions);
-    } catch (directFetchError) {
-      // Fallback: fetch transactions per account from the item.
-      const accountsResponse = await pluggyClient.fetchAccounts(itemId);
-      const accounts = Array.isArray(accountsResponse?.results) ? accountsResponse.results : [];
-
-      const transactionPages = await Promise.all(
-        accounts.map((account) => pluggyClient.fetchTransactions(account.id))
-      );
-
-      const mergedTransactions = transactionPages.flatMap((page) =>
-        Array.isArray(page?.results) ? page.results : []
-      );
-
-      return res.json({
-        total: mergedTransactions.length,
-        results: mergedTransactions,
-      });
-    }
+    return res.json({
+      total: mergedTransactions.length,
+      results: mergedTransactions,
+    });
   } catch (error) {
     console.error('Pluggy Transactions Error:', error);
     res.status(500).json({ error: 'Failed to fetch transactions from Pluggy' });
@@ -162,6 +265,111 @@ app.get('/api/investments/:itemId', async (req, res) => {
   }
 });
 
+app.get('/api/debug/monthly-evolution', async (req, res) => {
+  try {
+    const itemIds = [...new Set(await fetchConnectedItemIds())];
+
+    const debugPerItem = await Promise.all(
+      itemIds.map(async (itemId) => {
+        try {
+          const accounts = getArrayResults(await pluggyClient.fetchAccounts(itemId));
+          let transactions = [];
+          let transactionError = null;
+
+          try {
+            transactions = await fetchTransactionsForItem(itemId, accounts);
+          } catch (err) {
+            transactionError = err.message || String(err);
+          }
+
+          const parsed = transactions.map((txn) => ({
+            rawDate: txn.date || txn.paymentDate || txn.createdAt || 'MISSING',
+            parsedDate: getTransactionDate(txn)?.toISOString() || 'PARSE_ERROR',
+            rawAmount: txn.amount || txn.value || 'MISSING',
+            parsedAmount: getTransactionAmount(txn),
+            accountId: txn.accountId || txn.account?.id || 'MISSING',
+            accountType: accounts.find((a) => a.id === (txn.accountId || txn.account?.id))?.type || 'UNKNOWN',
+          }));
+
+          const thisMonthOnly = transactions.filter((txn) => {
+            const txnDate = getTransactionDate(txn);
+            if (!txnDate) return false;
+
+            const today = new Date();
+            return (
+              txnDate.getFullYear() === today.getFullYear() &&
+              txnDate.getMonth() === today.getMonth() &&
+              txnDate.getDate() <= today.getDate()
+            );
+          });
+
+          return {
+            itemId,
+            accountCount: accounts.length,
+            accountNames: accounts.map((a) => ({ id: a.id, name: a.name, type: a.type })),
+            totalTransactionCount: transactions.length,
+            thisMonthTransactionCount: thisMonthOnly.length,
+            transactionError,
+            sampleParsedTransactions: parsed.slice(0, 5),
+          };
+        } catch (itemError) {
+          return {
+            itemId,
+            error: itemError.message,
+          };
+        }
+      })
+    );
+
+    const allAccounts = [];
+    const allTransactions = [];
+    let currentTotal = 0;
+
+    for (const itemId of itemIds) {
+      const accounts = getArrayResults(await pluggyClient.fetchAccounts(itemId));
+      allAccounts.push(...accounts.map((a) => ({ ...a, itemId })));
+      currentTotal += accounts
+        .filter((a) => a.type === 'BANK')
+        .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+      currentTotal += accounts
+        .filter((a) => a.type === 'CREDIT')
+        .reduce((sum, a) => sum + Math.abs(Number(a.balance) || 0), 0);
+
+      const txns = await fetchTransactionsForItem(itemId, accounts);
+      allTransactions.push(...txns.map((t) => ({ ...t, itemId })));
+    }
+
+    const accountTypeById = new Map(
+      allAccounts
+        .filter((account) => account?.id)
+        .map((account) => [account.id, account.type])
+    );
+
+    const evolution = buildMonthlyBalanceEvolution({
+      currentTotal,
+      transactions: allTransactions,
+      accountTypeById,
+    });
+
+    sendPrettyJson(res, 200, {
+      perItemDebug: debugPerItem,
+      consolidatedDebug: {
+        accountCount: allAccounts.length,
+        totalTransactionCount: allTransactions.length,
+        computedCurrentTotal: currentTotal,
+        balanceEvolutionPointCount: evolution.length,
+        first3EvolutionPoints: evolution.slice(0, 3),
+        last3EvolutionPoints: evolution.slice(-3),
+      },
+    });
+  } catch (error) {
+    sendPrettyJson(res, 500, {
+      error: 'Debug endpoint failed',
+      details: error.message,
+    });
+  }
+});
+
 app.get('/api/dashboard-data', async (req, res) => {
   try {
     const itemIds = [...new Set(await fetchConnectedItemIds())];
@@ -173,10 +381,20 @@ app.get('/api/dashboard-data', async (req, res) => {
           pluggyClient.fetchInvestments(itemId),
         ]);
 
+        const accounts = getArrayResults(accountsResponse);
+        let transactions = [];
+
+        try {
+          transactions = await fetchTransactionsForItem(itemId, accounts);
+        } catch (transactionError) {
+          console.warn(`Failed to fetch transactions for item ${itemId}:`, transactionError?.message || transactionError);
+        }
+
         return {
           itemId,
-          accounts: getArrayResults(accountsResponse),
+          accounts,
           investments: getArrayResults(investmentsResponse),
+          transactions,
         };
       })
     );
@@ -220,10 +438,31 @@ app.get('/api/dashboard-data', async (req, res) => {
       entry.investments.map((investment) => ({ ...investment, itemId: entry.itemId }))
     );
 
+    const allTransactions = perItemPayload.flatMap((entry) =>
+      entry.transactions.map((transaction) => ({ ...transaction, itemId: entry.itemId }))
+    );
+
+    const accountTypeById = new Map(
+      allAccounts
+        .filter((account) => account?.id)
+        .map((account) => [account.id, account.type])
+    );
+
+    const currentTotal =
+      bankAccounts.reduce((sum, account) => sum + (Number(account.balance) || 0), 0) +
+      creditCards.reduce((sum, account) => sum + Math.abs(Number(account.balance) || 0), 0);
+
+    const balanceEvolution = buildMonthlyBalanceEvolution({
+      currentTotal,
+      transactions: allTransactions,
+      accountTypeById,
+    });
+
     res.json({
       bankAccounts,
       creditCards,
       investments,
+      balanceEvolution,
       failedItems,
     });
   } catch (error) {

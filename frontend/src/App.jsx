@@ -9,8 +9,8 @@ import {
 } from 'recharts'
 import { ChevronDown, ChevronUp, CreditCard, Landmark, Languages, Moon, Sun, TrendingUp, Wallet } from 'lucide-react'
 import flammaLogo from './assets/flamma-logo.svg'
-import interLogo from './assets/banks/inter.svg'
-import nubankLogo from './assets/banks/nubank.svg'
+import interLogo from './assets/banks/inter.webp'
+import nubankLogo from './assets/banks/nubank.webp'
 
 const API_BASE = 'http://localhost:3000/api'
 
@@ -152,6 +152,7 @@ function Dashboard() {
   const [bankAccounts, setBankAccounts] = useState([])
   const [creditAccounts, setCreditAccounts] = useState([])
   const [investments, setInvestments] = useState([])
+  const [balanceEvolution, setBalanceEvolution] = useState([])
   const [investmentView, setInvestmentView] = useState('classes')
   const [isEvolutionCollapsed, setIsEvolutionCollapsed] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -237,6 +238,7 @@ function Dashboard() {
       setBankAccounts(getArrayResults(payload?.bankAccounts))
       setCreditAccounts(getArrayResults(payload?.creditCards))
       setInvestments(getArrayResults(payload?.investments))
+      setBalanceEvolution(getArrayResults(payload?.balanceEvolution))
 
       const failedItems = getArrayResults(payload?.failedItems)
       if (failedItems.length > 0) {
@@ -318,38 +320,30 @@ function Dashboard() {
 
   const evolutionTotal = bankBalanceTotal + creditUsedTotal
   const evolutionData = useMemo(() => {
-    const today = new Date()
-    const currentDay = today.getDate()
-    const safeTotal = Number(evolutionTotal) || 0
+    const backendSeries = getArrayResults(balanceEvolution)
+      .map((point) => ({
+        day: String(point?.day || ''),
+        fullDate: String(point?.fullDate || ''),
+        value: Number(point?.value) || 0,
+      }))
+      .filter((point) => point.day && point.fullDate)
 
-    if (currentDay <= 1) {
-      return [
-        {
-          day: String(currentDay).padStart(2, '0'),
-          fullDate: `${String(currentDay).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`,
-          value: Number(safeTotal.toFixed(2)),
-        },
-      ]
+    if (backendSeries.length > 0) {
+      return backendSeries
     }
 
-    const startValue = safeTotal > 0 ? safeTotal * 0.92 : 0
-    const volatilityBase = safeTotal > 0 ? safeTotal * 0.015 : 0
+    const today = new Date()
+    const day = String(today.getDate()).padStart(2, '0')
+    const month = String(today.getMonth() + 1).padStart(2, '0')
 
-    return Array.from({ length: currentDay }, (_, index) => {
-      const day = index + 1
-      const progress = index / (currentDay - 1)
-      const wave = Math.sin(progress * Math.PI * 3.2) * volatilityBase
-      const trend = startValue + (safeTotal - startValue) * progress
-      const computed = Math.max(0, trend + wave)
-      const value = day === currentDay ? safeTotal : computed
-
-      return {
-        day: String(day).padStart(2, '0'),
-        fullDate: `${String(day).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`,
-        value: Number(value.toFixed(2)),
-      }
-    })
-  }, [evolutionTotal])
+    return [
+      {
+        day,
+        fullDate: `${day}/${month}`,
+        value: Number((Number(evolutionTotal) || 0).toFixed(2)),
+      },
+    ]
+  }, [balanceEvolution, evolutionTotal])
 
   return (
     <main className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#080a0f]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}>
@@ -443,7 +437,7 @@ function Dashboard() {
                           <img
                             src={getBankLogo(account)}
                             alt={getInstitutionName(account)}
-                            className="h-6 w-6 rounded-md"
+                            className="h-5 w-5 rounded-md"
                           />
                         ) : (
                           <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-800' : 'bg-zinc-700 text-[#e9f0ff]'}`}>
