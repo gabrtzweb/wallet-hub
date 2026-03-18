@@ -105,11 +105,11 @@ app.get('/api/debug/pluggy', async (req, res) => {
   }
 });
 
-// ROTA CORRIGIDA: Agora ela aceita o ID do item na URL
+// Now it accepts the item ID in the URL
 app.get('/api/accounts/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    // O método correto para ver saldo e contas é fetchAccounts
+    // The correct method to view balance and accounts is fetchAccounts.
     const accounts = await pluggyClient.fetchAccounts(itemId);
     res.json(accounts);
   } catch (error) {
