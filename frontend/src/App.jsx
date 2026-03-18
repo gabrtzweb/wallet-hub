@@ -31,8 +31,6 @@ const BANK_BRANDING = {
   },
 }
 
-const ITEM_IDS = Object.keys(DASHBOARD_ITEMS)
-
 const COPY = {
   en: {
     overview: 'Overview',
@@ -138,38 +136,27 @@ function Dashboard() {
     setError('')
 
     try {
-      const perItemData = await Promise.all(
-        ITEM_IDS.map(async (itemId) => {
-          const [accountsRes, investmentsRes] = await Promise.all([
-            fetch(`${API_BASE}/accounts/${itemId}`),
-            fetch(`${API_BASE}/investments/${itemId}`),
-          ])
+      const response = await fetch(`${API_BASE}/dashboard-data`)
 
-          if (!accountsRes.ok || !investmentsRes.ok) {
-            throw new Error(`Failed to load data for item ${itemId}`)
-          }
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        const firstFailure = getArrayResults(payload?.failedItems)[0]
+        const detailedReason = firstFailure?.message ? ` (${firstFailure.message})` : ''
+        throw new Error((payload?.error || 'Failed to load dashboard data.') + detailedReason)
+      }
 
-          const [accountsData, investmentsData] = await Promise.all([
-            accountsRes.json(),
-            investmentsRes.json(),
-          ])
+      const payload = await response.json()
 
-          const accounts = getArrayResults(accountsData).map((account) => ({ ...account, itemId }))
-          const itemInvestments = getArrayResults(investmentsData).map((investment) => ({
-            ...investment,
-            itemId,
-          }))
+      setBankAccounts(getArrayResults(payload?.bankAccounts))
+      setCreditAccounts(getArrayResults(payload?.creditCards))
+      setInvestments(getArrayResults(payload?.investments))
 
-          return { accounts, investments: itemInvestments }
-        }),
-      )
-
-      const allAccounts = perItemData.flatMap((entry) => entry.accounts)
-      const allInvestments = perItemData.flatMap((entry) => entry.investments)
-
-      setBankAccounts(allAccounts.filter((account) => account.type === 'BANK'))
-      setCreditAccounts(allAccounts.filter((account) => account.type === 'CREDIT'))
-      setInvestments(allInvestments)
+      const failedItems = getArrayResults(payload?.failedItems)
+      if (failedItems.length > 0) {
+        const firstFailure = failedItems[0]
+        const institutionName = DASHBOARD_ITEMS[firstFailure?.itemId] || firstFailure?.itemId || 'an item'
+        setError(`Some connections failed to refresh (${institutionName}). Showing partial data.`)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error while loading dashboard data.')
     } finally {
