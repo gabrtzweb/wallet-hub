@@ -2,7 +2,7 @@ import interLogo from '../assets/bank-inter.webp'
 import nubankLogo from '../assets/bank-nubank.webp'
 
 export const API_BASE = 'http://localhost:3000/api'
-export const APP_VERSION = 'Wallet Hub v1.0.0'
+export const APP_VERSION = 'Wallet Hub v1.1.0'
 export const DEV_SIGNATURE = 'Flamma Digital'
 
 export const DASHBOARD_ITEMS = {
@@ -60,6 +60,14 @@ export const COPY = {
     connectionsPartnerApps: 'Partner Apps',
     connectionsNoPartnerApps: 'No partner app is accessing your data.',
     connectionsNoConnections: 'No active connections found.',
+    connectionsBankLabel: 'Bank',
+    connectionsBack: 'Connections',
+    connectionsUpdate: 'Update',
+    connectionsDelete: 'Delete',
+    connectionsMovements: 'movements',
+    connectionsSyncLabel: 'Synchronized',
+    connectionsAutoUpdateLabel: 'Auto-updates automatically',
+    connectionsManualLabel: 'Manual',
     lightMode: 'Light',
     darkMode: 'Dark',
     classes: 'Classes',
@@ -109,6 +117,12 @@ export const COPY = {
     allFilter: 'All',
     incomesFilter: 'Income',
     expensesFilter: 'Expenses',
+    transactionCount: 'transactions',
+    balanceLabel: 'Balance',
+    balanceDifferenceLabel: 'Difference Balance',
+    balanceIncomeLabel: 'Income Balance',
+    balanceExpenseLabel: 'Expense Balance',
+    openingBalanceLabel: 'Opening Balance',
     appVersion: APP_VERSION,
     developedByLabel: 'developed by',
     developerSignature: DEV_SIGNATURE,
@@ -154,6 +168,14 @@ export const COPY = {
     connectionsPartnerApps: 'Apps parceiros',
     connectionsNoPartnerApps: 'Nenhum app parceiro está acessando seus dados.',
     connectionsNoConnections: 'Nenhuma conexão ativa encontrada.',
+    connectionsBankLabel: 'Banco',
+    connectionsBack: 'Conexões',
+    connectionsUpdate: 'Atualizar',
+    connectionsDelete: 'Excluir',
+    connectionsMovements: 'movimentações',
+    connectionsSyncLabel: 'Sincronizado',
+    connectionsAutoUpdateLabel: 'Atualiza automaticamente',
+    connectionsManualLabel: 'Manual',
     lightMode: 'Claro',
     darkMode: 'Escuro',
     classes: 'Classes',
@@ -203,6 +225,12 @@ export const COPY = {
     allFilter: 'Todos',
     incomesFilter: 'Entradas',
     expensesFilter: 'Saídas',
+    transactionCount: 'transações',
+    balanceLabel: 'Saldo',
+    balanceDifferenceLabel: 'Saldo de diferença',
+    balanceIncomeLabel: 'Saldo de entradas',
+    balanceExpenseLabel: 'Saldo de saídas',
+    openingBalanceLabel: 'Saldo de Abertura',
     appVersion: APP_VERSION,
     developedByLabel: 'desenvolvido por',
     developerSignature: DEV_SIGNATURE,
@@ -248,3 +276,17 @@ export const getInstitutionName = (entry) => {
 }
 
 export const getBankLogo = (entry) => BANK_BRANDING[entry?.itemId]?.logo || null
+
+export const getFriendlyAccountLabel = (account, language = 'pt', fallbackLabel = 'Unknown account') => {
+  if (!account) return fallbackLabel
+
+  const institutionName = getInstitutionName(account)
+  const accountType = String(account?.type || account?.accountType || 'BANK').toUpperCase()
+  const isCreditAccount = accountType === 'CREDIT'
+
+  const typeLabel = language === 'pt'
+    ? (isCreditAccount ? 'Cartão de Crédito' : 'Conta Corrente')
+    : (isCreditAccount ? 'Credit Card' : 'Checking Account')
+
+  return `${institutionName} (${typeLabel})`
+}

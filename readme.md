@@ -71,12 +71,15 @@ wallet-hub/
 
 ## Getting Started
 
-### 1) Backend
+### 1) Setup
+
+Clone or download the project, then install dependencies for all packages:
 
 ```bash
-cd backend
-npm install
+npm run install:all
 ```
+
+### 2) Environment
 
 Create `backend/.env` with:
 
@@ -87,21 +90,17 @@ PLUGGY_DASHBOARD_ITEM_IDS=item_id_1,item_id_2
 PORT=3000
 ```
 
-Run backend:
+### 3) Start Development
+
+From the root folder:
 
 ```bash
 npm run dev
 ```
 
-### 2) Frontend
+This will start both the backend API server (`http://localhost:3000`) and the frontend dev server (`http://localhost:5173`) simultaneously.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend default URL: `http://localhost:5173`
+**Frontend default URL:** `http://localhost:5173`
 
 ## Available Scripts
 
@@ -140,7 +139,8 @@ Returns consolidated arrays for:
 
 ## Roadmap
 
-- Improve Flow filters (month/account/search/type) with real behavior.
-- Finalize Assets calculations and data parity across institutions.
-- Implement real Connections actions and management flows.
-- Add tests for data normalization and totals consistency.
+- Manual connection support for non-Open Finance institutions.
+- Enhanced UI/UX design refinements and micro-interactions.
+- Additional data visualizations and analytics cards.
+- Upcoming payments and bill tracking features.
+- Add automated tests for data normalization and financial totals.

@@ -76,6 +76,7 @@ function Dashboard() {
     setInvestmentView,
     investmentClassesCount,
     investments,
+    transactions,
     institutionInvestments,
     isEvolutionCollapsed,
     setIsEvolutionCollapsed,
@@ -89,11 +90,17 @@ function Dashboard() {
     formatTransactionDate,
     monthlyIncome,
     monthlyExpenses,
+    flowMonthlyIncome,
+    flowMonthlyExpenses,
     cashFlowBarWidth,
     cashFlowExpenseToIncomePct,
     upcomingBills,
     formatCardName,
     flowMonthLabel,
+    canGoToPreviousFlowMonth,
+    canGoToNextFlowMonth,
+    goToPreviousFlowMonth,
+    goToNextFlowMonth,
     flowGroupedTransactions,
     lastSyncedText,
   } = useDashboardData({ language, text })
@@ -171,7 +178,7 @@ function Dashboard() {
       : isConnectionsView
         ? text.connectionsSubtitle
         : text.subtitle
-  const showPageHeader = !isConnectionsView
+  const showPageHeader = true
 
   return (
     <main className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#080a0f]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}>
@@ -224,6 +231,7 @@ function Dashboard() {
                   element={
                     <OverviewPage
                       glassCardClass={glassCardClass}
+                      language={language}
                       topCardTitleClass={topCardTitleClass}
                       primaryTextClass={primaryTextClass}
                       secondaryTextClass={secondaryTextClass}
@@ -277,17 +285,23 @@ function Dashboard() {
                       glassCardClass={glassCardClass}
                       cardSubtleDividerClass={cardSubtleDividerClass}
                       isLightMode={isLightMode}
+                      language={language}
                       primaryTextClass={primaryTextClass}
                       secondaryTextClass={secondaryTextClass}
                       flowMonthLabel={flowMonthLabel}
-                      monthlyIncome={monthlyIncome}
-                      monthlyExpenses={monthlyExpenses}
+                      monthlyIncome={flowMonthlyIncome}
+                      monthlyExpenses={flowMonthlyExpenses}
+                      canGoToPreviousFlowMonth={canGoToPreviousFlowMonth}
+                      canGoToNextFlowMonth={canGoToNextFlowMonth}
+                      goToPreviousFlowMonth={goToPreviousFlowMonth}
+                      goToNextFlowMonth={goToNextFlowMonth}
                       formatMoney={formatMoney}
                       text={text}
                       flowGroupedTransactions={flowGroupedTransactions}
                       getNormalizedAmount={getNormalizedAmount}
                       accountMetadataById={accountMetadataById}
                       getBankLogo={getBankLogo}
+                      bankBalanceTotal={bankBalanceTotal}
                     />
                   }
                 />
@@ -322,6 +336,7 @@ function Dashboard() {
                       bankAccounts={sortedBankAccounts}
                       creditAccounts={sortedCreditAccounts}
                       investments={investments}
+                      transactions={transactions}
                     />
                   }
                 />

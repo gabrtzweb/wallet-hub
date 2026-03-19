@@ -20,6 +20,10 @@ function useDashboardData({ language, text }) {
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedFlowMonth, setSelectedFlowMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
 
   const brlFormatter = useMemo(
     () =>
@@ -149,17 +153,23 @@ function useDashboardData({ language, text }) {
     return accountType === 'CREDIT' ? rawAmount * -1 : rawAmount
   }, [accountMetadataById])
 
+  const getTransactionDate = useCallback((transaction) => {
+    const rawDate = transaction?.date || transaction?.paymentDate || transaction?.createdAt
+    if (!rawDate) return null
+
+    const parsedDate = new Date(rawDate)
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+  }, [])
+
   const currentMonthTransactions = useMemo(() => {
     const now = new Date()
     return transactions.filter((transaction) => {
-      const rawDate = transaction?.date || transaction?.paymentDate || transaction?.createdAt
-      if (!rawDate) return false
-      const parsedDate = new Date(rawDate)
-      if (Number.isNaN(parsedDate.getTime())) return false
+      const parsedDate = getTransactionDate(transaction)
+      if (!parsedDate) return false
 
       return parsedDate.getFullYear() === now.getFullYear() && parsedDate.getMonth() === now.getMonth()
     })
-  }, [transactions])
+  }, [getTransactionDate, transactions])
 
   const monthlyIncome = useMemo(
     () => currentMonthTransactions.reduce((sum, transaction) => {
@@ -286,18 +296,85 @@ function useDashboardData({ language, text }) {
     const label = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
       month: 'long',
       year: 'numeric',
-    }).format(new Date())
+    }).format(selectedFlowMonth)
 
     return label.charAt(0).toUpperCase() + label.slice(1)
-  }, [language])
+  }, [language, selectedFlowMonth])
+
+  const earliestFlowMonth = useMemo(() => {
+    const timestamps = transactions
+      .map((transaction) => getTransactionDate(transaction)?.getTime() || null)
+      .filter((value) => Number.isFinite(value))
+
+    if (timestamps.length === 0) {
+      const now = new Date()
+      return new Date(now.getFullYear(), now.getMonth(), 1)
+    }
+
+    const oldestDate = new Date(Math.min(...timestamps))
+    return new Date(oldestDate.getFullYear(), oldestDate.getMonth(), 1)
+  }, [getTransactionDate, transactions])
+
+  const currentFlowMonth = useMemo(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  }, [])
+
+  const canGoToPreviousFlowMonth = useMemo(() => {
+    return selectedFlowMonth.getTime() > earliestFlowMonth.getTime()
+  }, [earliestFlowMonth, selectedFlowMonth])
+
+  const canGoToNextFlowMonth = useMemo(() => {
+    return selectedFlowMonth.getTime() < currentFlowMonth.getTime()
+  }, [currentFlowMonth, selectedFlowMonth])
+
+  const goToPreviousFlowMonth = useCallback(() => {
+    setSelectedFlowMonth((current) => {
+      const previous = new Date(current.getFullYear(), current.getMonth() - 1, 1)
+      return previous.getTime() < earliestFlowMonth.getTime() ? current : previous
+    })
+  }, [earliestFlowMonth])
+
+  const goToNextFlowMonth = useCallback(() => {
+    setSelectedFlowMonth((current) => {
+      const next = new Date(current.getFullYear(), current.getMonth() + 1, 1)
+      return next.getTime() > currentFlowMonth.getTime() ? current : next
+    })
+  }, [currentFlowMonth])
+
+  const selectedMonthTransactions = useMemo(
+    () => transactions.filter((transaction) => {
+      const parsedDate = getTransactionDate(transaction)
+      if (!parsedDate) return false
+
+      return parsedDate.getFullYear() === selectedFlowMonth.getFullYear() && parsedDate.getMonth() === selectedFlowMonth.getMonth()
+    }),
+    [getTransactionDate, selectedFlowMonth, transactions],
+  )
+
+  const flowMonthlyIncome = useMemo(
+    () => selectedMonthTransactions.reduce((sum, transaction) => {
+      const amount = getNormalizedAmount(transaction)
+      return amount > 0 ? sum + amount : sum
+    }, 0),
+    [getNormalizedAmount, selectedMonthTransactions],
+  )
+
+  const flowMonthlyExpenses = useMemo(
+    () => Math.abs(selectedMonthTransactions.reduce((sum, transaction) => {
+      const amount = getNormalizedAmount(transaction)
+      return amount < 0 ? sum + amount : sum
+    }, 0)),
+    [getNormalizedAmount, selectedMonthTransactions],
+  )
 
   const flowTransactions = useMemo(
-    () => [...currentMonthTransactions].sort((first, second) => {
-      const firstDate = new Date(first?.date || first?.paymentDate || first?.createdAt || 0).getTime()
-      const secondDate = new Date(second?.date || second?.paymentDate || second?.createdAt || 0).getTime()
+    () => [...selectedMonthTransactions].sort((first, second) => {
+      const firstDate = getTransactionDate(first)?.getTime() || 0
+      const secondDate = getTransactionDate(second)?.getTime() || 0
       return secondDate - firstDate
     }),
-    [currentMonthTransactions],
+    [getTransactionDate, selectedMonthTransactions],
   )
 
   const flowGroupedTransactions = useMemo(() => {
@@ -377,6 +454,7 @@ function useDashboardData({ language, text }) {
     setInvestmentView,
     investmentClassesCount,
     investments,
+    transactions,
     institutionInvestments,
     isEvolutionCollapsed,
     setIsEvolutionCollapsed,
@@ -390,11 +468,17 @@ function useDashboardData({ language, text }) {
     formatTransactionDate,
     monthlyIncome,
     monthlyExpenses,
+    flowMonthlyIncome,
+    flowMonthlyExpenses,
     cashFlowBarWidth,
     cashFlowExpenseToIncomePct,
     upcomingBills,
     formatCardName,
     flowMonthLabel,
+    canGoToPreviousFlowMonth,
+    canGoToNextFlowMonth,
+    goToPreviousFlowMonth,
+    goToNextFlowMonth,
     flowGroupedTransactions,
     lastSyncedText,
   }

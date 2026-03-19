@@ -10,10 +10,11 @@ import {
   XAxis,
 } from 'recharts'
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronUp, Clock3, CreditCard, Donut, Landmark, ReceiptText, ScrollText, TrendingUp, Wallet } from 'lucide-react'
-import { getCreditLimit, getInstitutionName } from '../config/dashboardConfig'
+import { getCreditLimit, getFriendlyAccountLabel, getInstitutionName } from '../config/dashboardConfig'
 
 function OverviewPage({
   glassCardClass,
+  language,
   topCardTitleClass,
   primaryTextClass,
   secondaryTextClass,
@@ -385,7 +386,7 @@ function OverviewPage({
                 const normalizedAmount = getNormalizedAmount(transaction)
                 const isIncome = normalizedAmount > 0
                 const accountMeta = accountMetadataById.get(transaction?.accountId || transaction?.account?.id || null)
-                const accountName = accountMeta?.name || transaction?.account?.name || text.accountUnit
+                const accountName = getFriendlyAccountLabel(accountMeta || transaction?.account, language, text.accountUnit)
                 const categoryName = transaction?.category || text.uncategorized
                 const description = truncateText(transaction?.description || text.uncategorized)
                 return (
