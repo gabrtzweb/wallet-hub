@@ -23,16 +23,6 @@ Completed:
 - Responsive header improvements (mobile hamburger, icon-only controls on mobile).
 - Mobile and desktop footer refinements.
 
-In progress / Pending:
-
-- `Assets` (high priority):
-	- finalize invested value sources for all connectors/investment types.
-	- improve details block fidelity and edge-case fallbacks.
-- `Connections`:
-	- currently design-first; interactions are visual only.
-	- add real actions (open details, create/manage connection flows).
-- Add automated tests for normalization and financial totals.
-
 ## Architecture
 
 - `frontend/`: React + Vite SPA.
