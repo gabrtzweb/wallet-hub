@@ -107,8 +107,8 @@ function Dashboard() {
   const cardPrimaryDividerClass = isLightMode ? 'border-zinc-400/90' : 'border-zinc-500/90'
   const cardSubtleDividerClass = isLightMode ? 'border-zinc-300/45' : 'border-zinc-700/45'
   const navActiveClass = isLightMode
-    ? 'rounded-lg bg-[rgba(31,103,255,0.85)] px-2 py-1 text-xs font-semibold text-white md:px-2.5 md:text-[15px]'
-    : 'rounded-lg bg-[rgba(31,103,255,0.85)] px-2 py-1 text-xs font-semibold text-[#e9f0ff] md:px-2.5 md:text-[15px]'
+    ? 'rounded-lg bg-[rgba(31,103,255,0.85)] px-2 py-1 text-xs font-semibold text-white md:px-2.5 md:text-[14px]'
+    : 'rounded-lg bg-[rgba(31,103,255,0.85)] px-2 py-1 text-xs font-semibold text-[#e9f0ff] md:px-2.5 md:text-[14px]'
   const navInactiveClass = isLightMode
     ? 'rounded-lg px-2 py-1 text-xs text-zinc-600 transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white md:px-2.5 md:text-sm'
     : 'rounded-lg px-2 py-1 text-xs text-zinc-400 transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white md:px-2.5 md:text-sm'
@@ -136,10 +136,21 @@ function Dashboard() {
     : 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
 
   const categoryChartColors = useMemo(
-    () => (isLightMode
-      ? ['#1f67ff', '#22c55e', '#f87171', '#64748b', '#94a3b8']
-      : ['#1f67ff', '#22c55e', '#f87171', '#94a3b8', '#64748b']),
-    [isLightMode],
+    () => [
+      '#f472b6', // pink-400
+      '#a78bfa', // violet-400
+      '#818cf8', // indigo-400
+      '#fb7185', // rose-400
+      '#22d3ee', // cyan-400
+      '#fbbf24', // amber-400
+      '#34d399', // emerald-400
+      '#60a5fa', // blue-400
+      '#2dd4bf', // teal-400
+      '#fb923c', // orange-400
+      '#a3e635', // lime-400
+      '#e879f9', // fuchsia-400
+    ],
+    [],
   )
 
   const handleGoToFlow = () => {

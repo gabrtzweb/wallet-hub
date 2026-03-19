@@ -280,7 +280,7 @@ function OverviewPage({
                 <CartesianGrid vertical={false} stroke="#22252d" strokeDasharray="2 2" />
                 <XAxis
                   dataKey="day"
-                  tick={{ fill: '#71717a', fontSize: 11 }}
+                  tick={{ fill: '#71717a', fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
                   interval="preserveStartEnd"
@@ -309,8 +309,8 @@ function OverviewPage({
         )}
       </section>
 
-      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className={`${glassCardClass} p-4`}>
+      <section className="mt-4 grid grid-cols-1 gap-y-4 gap-x-3 lg:grid-cols-2">
+        <article className={`${glassCardClass} flex flex-col p-4`}>
           <h3 className={`mb-4 flex items-center gap-2 ${topCardTitleClass}`}>
             <Donut className="h-[18px] w-[18px] text-[#1f67ff]" />
             <span>{text.spendingByCategory}</span>
@@ -318,33 +318,41 @@ function OverviewPage({
           {spendingByCategoryData.length === 0 ? (
             <p className={`mt-4 text-sm ${secondaryTextClass}`}>{text.noCategoryData}</p>
           ) : (
-            <div className="mt-3 grid grid-cols-[120px_1fr] items-center gap-3">
-              <div className="h-[120px] w-[120px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={spendingByCategoryData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={34}
-                      outerRadius={52}
-                      paddingAngle={2}
-                    >
-                      {spendingByCategoryData.map((entry, index) => (
-                        <Cell key={entry.name} fill={categoryChartColors[index % categoryChartColors.length]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
+            <div className="mt-3 grid flex-1 grid-cols-1 items-stretch gap-4 sm:grid-cols-[160px_1fr]">
+              <div className="flex items-center justify-center">
+                <div className="h-[160px] w-[160px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={spendingByCategoryData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={46}
+                        outerRadius={72}
+                        paddingAngle={0}
+                        stroke="none"
+                      >
+                        {spendingByCategoryData.map((entry, index) => (
+                          <Cell key={entry.name} fill={categoryChartColors[index % categoryChartColors.length]} stroke="none" />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div className="space-y-1.5">
+              <div className="flex flex-col justify-center space-y-2">
                 {spendingByCategoryData.map((entry, index) => (
                   <div key={entry.name} className="flex items-center justify-between text-xs">
                     <span className={`flex min-w-0 items-center gap-2 pr-2 ${secondaryTextClass}`}>
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: categoryChartColors[index % categoryChartColors.length] }} />
                       <span className="truncate">{entry.name}</span>
                     </span>
-                    <span className={`font-semibold tabular-nums ${primaryTextClass}`}>{formatMoney(entry.value)}</span>
+                    <span
+                      className="font-semibold tabular-nums"
+                      style={{ color: categoryChartColors[index % categoryChartColors.length] }}
+                    >
+                      {formatMoney(entry.value)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -381,7 +389,7 @@ function OverviewPage({
                 const categoryName = transaction?.category || text.uncategorized
                 const description = truncateText(transaction?.description || text.uncategorized)
                 return (
-                  <div key={transaction.id} className={`flex items-center justify-between border-b pb-2 text-sm last:border-b-0 ${cardSubtleDividerClass}`}>
+                  <div key={transaction.id} className={`flex items-start justify-between border-b pb-2 text-sm last:border-b-0 ${cardSubtleDividerClass}`}>
                     <div className="flex min-w-0 items-center gap-2 pr-3">
                       <span
                         className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
@@ -412,8 +420,8 @@ function OverviewPage({
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className={`font-semibold tabular-nums ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
+                    <div className="shrink-0 pl-2 text-right">
+                      <span className={`whitespace-nowrap font-semibold tabular-nums ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
                         {isIncome ? '+' : '-'}{formatMoney(Math.abs(normalizedAmount))}
                       </span>
                       <p className={`mt-0.5 text-xs ${secondaryTextClass}`}>
@@ -461,7 +469,7 @@ function OverviewPage({
             <div className="mt-3 space-y-2.5">
               {upcomingBills.slice(0, 5).map((bill) => (
                 <div key={bill.id}>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-start justify-between gap-2 text-sm">
                     <span className={`flex min-w-0 items-center gap-2 ${primaryTextClass}`}>
                       <span className="shrink-0">
                         {bill.logo ? (
@@ -470,10 +478,11 @@ function OverviewPage({
                           <span className={`inline-block h-2 w-2 rounded-full ${isLightMode ? 'bg-zinc-400' : 'bg-zinc-500'}`} />
                         )}
                       </span>
-                      <span className="truncate">{bill.name} - {text.dueInLabel}: {bill.dueDateLabel}</span>
+                      <span className="truncate">{bill.name}</span>
                     </span>
-                    <span className="font-semibold tabular-nums text-[#f87171]">{formatMoney(bill.used)}</span>
+                    <span className="shrink-0 whitespace-nowrap font-semibold tabular-nums text-[#f87171]">{formatMoney(bill.used)}</span>
                   </div>
+                  <p className={`mt-0.5 text-xs ${secondaryTextClass}`}>{text.dueInLabel}: {bill.dueDateLabel}</p>
                   <p className={`mt-0.5 text-xs ${secondaryTextClass}`}>{text.usedLabel}: {formatMoney(bill.used)} {text.usedOf} {formatMoney(bill.limit)}</p>
                 </div>
               ))}

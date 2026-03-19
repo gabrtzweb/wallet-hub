@@ -3,7 +3,7 @@ import { GithubIcon, Globe, LinkedinIcon } from 'lucide-react'
 function DashboardFooter({ isLightMode, secondaryTextClass, text, lastSyncedText }) {
   return (
     <footer className={`mt-10 border-t pt-3 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-800/70'}`}>
-      <div className={`flex flex-col gap-2 text-[11px] md:flex-row md:items-center md:justify-between ${secondaryTextClass}`}>
+      <div className={`flex flex-col gap-2 text-[10px] md:flex-row md:items-center md:justify-between ${secondaryTextClass}`}>
         <div className="md:hidden">
           <p className="flex flex-wrap items-center gap-1.5 font-medium">
             <span>{text.appVersion}</span>
@@ -14,27 +14,27 @@ function DashboardFooter({ isLightMode, secondaryTextClass, text, lastSyncedText
               target="_blank"
               rel="noreferrer"
               aria-label="GitHub"
-              className={`rounded p-0.5 transition-colors ${isLightMode ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors ${isLightMode ? 'bg-zinc-200/90 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-800' : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'}`}
             >
-              <GithubIcon className="h-4 w-4" />
+              <GithubIcon className="h-3 w-3" />
             </a>
             <a
               href="https://flamma.digital/"
               target="_blank"
               rel="noreferrer"
               aria-label="Website"
-              className={`rounded p-0.5 transition-colors ${isLightMode ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors ${isLightMode ? 'bg-zinc-200/90 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-800' : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'}`}
             >
-              <Globe className="h-4 w-4" />
+              <Globe className="h-3 w-3" />
             </a>
             <a
               href="https://www.linkedin.com/in/rodrigo-gabirobertz/"
               target="_blank"
               rel="noreferrer"
               aria-label="LinkedIn"
-              className={`rounded p-0.5 transition-colors ${isLightMode ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-400 hover:text-zinc-200'}`}
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors ${isLightMode ? 'bg-zinc-200/90 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-800' : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'}`}
             >
-              <LinkedinIcon className="h-4 w-4" />
+              <LinkedinIcon className="h-3 w-3" />
             </a>
           </p>
           <p className="mt-1 flex items-center gap-1.5 font-medium">
@@ -55,27 +55,27 @@ function DashboardFooter({ isLightMode, secondaryTextClass, text, lastSyncedText
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub"
-            className={`transition-colors ${isLightMode ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={`inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors ${isLightMode ? 'bg-zinc-200/90 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-800' : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'}`}
           >
-            <GithubIcon className="h-4 w-4" />
+            <GithubIcon className="h-3 w-3" />
           </a>
           <a
             href="https://flamma.digital/"
             target="_blank"
             rel="noreferrer"
             aria-label="Website"
-            className={`transition-colors ${isLightMode ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={`inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors ${isLightMode ? 'bg-zinc-200/90 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-800' : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'}`}
           >
-            <Globe className="h-4 w-4" />
+            <Globe className="h-3 w-3" />
           </a>
           <a
             href="https://www.linkedin.com/in/rodrigo-gabirobertz/"
             target="_blank"
             rel="noreferrer"
             aria-label="LinkedIn"
-            className={`transition-colors ${isLightMode ? 'text-zinc-500 hover:text-zinc-700' : 'text-zinc-400 hover:text-zinc-200'}`}
+            className={`inline-flex h-5 w-5 items-center justify-center rounded-md transition-colors ${isLightMode ? 'bg-zinc-200/90 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-800' : 'bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100'}`}
           >
-            <LinkedinIcon className="h-4 w-4" />
+            <LinkedinIcon className="h-3 w-3" />
           </a>
         </p>
 

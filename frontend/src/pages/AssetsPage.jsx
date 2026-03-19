@@ -216,22 +216,22 @@ function AssetsPage({
                           <div className={`border-t px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
                             <div className={`mb-3 grid grid-cols-1 gap-3 border-b pb-3 md:grid-cols-3 ${cardSubtleDividerClass}`}>
                               <div>
-                                <p className={`text-[11px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsBalanceLabel}</p>
+                                <p className={`text-[10px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsBalanceLabel}</p>
                                 <p className={`mt-0.5 text-sm font-semibold leading-none ${primaryTextClass}`}>{formatMoney(value)}</p>
                               </div>
                               <div>
-                                <p className={`text-[11px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsProfitabilityLabel}</p>
+                                <p className={`text-[10px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsProfitabilityLabel}</p>
                                 <p className={`mt-0.5 text-sm font-semibold leading-none ${primaryTextClass}`}>{profitabilityLabel}</p>
                               </div>
                               <div>
-                                <p className={`text-[11px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsInvestedValueLabel}</p>
+                                <p className={`text-[10px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsInvestedValueLabel}</p>
                                 <p className={`mt-0.5 text-sm font-semibold leading-none ${primaryTextClass}`}>
                                   {investedValue == null ? text.assetsNotAvailable : formatMoney(investedValue)}
                                 </p>
                               </div>
                             </div>
 
-                            <p className={`mb-2 text-[11px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsMovementsLabel}</p>
+                            <p className={`mb-2 text-[10px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsMovementsLabel}</p>
                             <div className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300/70 bg-zinc-50/70' : 'border-zinc-700/60 bg-zinc-900/30'}`}>
                               <div className="flex min-w-0 items-center gap-2 pr-4">
                                 <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isLightMode ? 'bg-emerald-100 text-[#22c55e]' : 'bg-emerald-500/10 text-[#22c55e]'}`}>
@@ -239,7 +239,7 @@ function AssetsPage({
                                 </span>
                                 <div className="min-w-0">
                                   <p className={`text-xs font-semibold ${primaryTextClass}`}>{text.assetsBuyLabel}</p>
-                                  <p className={`text-[11px] ${secondaryTextClass}`}>{movementDate}</p>
+                                  <p className={`text-[10px] ${secondaryTextClass}`}>{movementDate}</p>
                                 </div>
                               </div>
                               <span className="text-sm font-semibold tabular-nums text-[#22c55e]">

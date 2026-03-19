@@ -53,7 +53,7 @@ function ConnectionsPage({
           <div className="flex items-center gap-2">
             <Link2 className="h-[18px] w-[18px] text-[#1f67ff]" />
             <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.navConnections}</h3>
-            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
               {connections.length} {text.connectionsActiveLabel}
             </span>
           </div>
