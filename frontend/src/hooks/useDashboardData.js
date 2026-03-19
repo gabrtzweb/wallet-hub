@@ -282,14 +282,14 @@ function useDashboardData({ language, text }) {
     }).format(parsedDate)
   }, [language])
 
-  const flowMonthLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
-        month: 'long',
-        year: 'numeric',
-      }).format(new Date()),
-    [language],
-  )
+  const flowMonthLabel = useMemo(() => {
+    const label = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date())
+
+    return label.charAt(0).toUpperCase() + label.slice(1)
+  }, [language])
 
   const flowTransactions = useMemo(
     () => [...currentMonthTransactions].sort((first, second) => {

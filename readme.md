@@ -1,6 +1,6 @@
 # Wallet Hub
 
-Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview and Flow pages.
+Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
 
 ## Overview
 
@@ -9,7 +9,29 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
 - Dedicated pages:
 	- `/` Overview
 	- `/flow` Cash Flow (Flow)
+	- `/assets` Assets
+	- `/connections` Connections
 - Localized UI (`PT`/`EN`) with dark and light themes.
+
+## Current Status
+
+Completed:
+
+- Real routing with modular pages (`Overview`, `Flow`, `Assets`, `Connections`).
+- Data hook extraction and shared config/copy organization.
+- Monthly flow normalization aligned with Pluggy behavior.
+- Responsive header improvements (mobile hamburger, icon-only controls on mobile).
+- Mobile and desktop footer refinements.
+
+In progress / Pending:
+
+- `Assets` (high priority):
+	- finalize invested value sources for all connectors/investment types.
+	- improve details block fidelity and edge-case fallbacks.
+- `Connections`:
+	- currently design-first; interactions are visual only.
+	- add real actions (open details, create/manage connection flows).
+- Add automated tests for normalization and financial totals.
 
 ## Architecture
 
@@ -119,5 +141,6 @@ Returns consolidated arrays for:
 ## Roadmap
 
 - Improve Flow filters (month/account/search/type) with real behavior.
-- Add dedicated pages for Assets and Connections.
+- Finalize Assets calculations and data parity across institutions.
+- Implement real Connections actions and management flows.
 - Add tests for data normalization and totals consistency.

@@ -5,6 +5,11 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    /* Keep centered layouts aligned even when some routes need vertical scroll. */
+    overflow-y: scroll;
+  }
+
   * {
     box-sizing: border-box;
   }

@@ -23,7 +23,7 @@ function FlowPage({
           <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${isLightMode ? 'bg-white text-zinc-600' : 'bg-zinc-900/70 text-zinc-400'}`}>
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <p className={`text-base font-semibold capitalize ${primaryTextClass}`}>{flowMonthLabel}</p>
+          <p className={`text-base font-semibold ${primaryTextClass}`}>{flowMonthLabel}</p>
           <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${isLightMode ? 'bg-white text-zinc-600' : 'bg-zinc-900/70 text-zinc-400'}`}>
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -58,7 +58,11 @@ function FlowPage({
         ) : (
           flowGroupedTransactions.map((group) => (
             <div key={group.day}>
-              <div className={`flex items-center gap-3 border-b px-4 py-2 md:px-5 ${cardSubtleDividerClass}`}>
+              <div
+                className={`flex items-center gap-3 border-b px-4 py-2 md:px-5 ${cardSubtleDividerClass} ${
+                  isLightMode ? 'bg-zinc-100/70' : 'bg-black/25'
+                }`}
+              >
                 <span className={`text-2xl font-semibold leading-none ${primaryTextClass}`}>{group.day}</span>
                 <span className={`text-sm capitalize ${secondaryTextClass}`}>{group.weekday}</span>
               </div>
@@ -90,7 +94,7 @@ function FlowPage({
                             <img
                               src={getBankLogo(accountMeta)}
                               alt={accountName}
-                              className="h-3 w-3 rounded-full"
+                              className="h-3.5 w-3.5 shrink-0 rounded object-contain"
                             />
                           ) : (
                             <span className={`inline-block h-1.5 w-1.5 rounded-full ${isLightMode ? 'bg-zinc-400' : 'bg-zinc-500'}`} />

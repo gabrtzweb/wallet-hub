@@ -400,7 +400,7 @@ function OverviewPage({
                             <img
                               src={getBankLogo(accountMeta)}
                               alt={accountName}
-                              className="h-3 w-3 rounded-full"
+                              className="h-3.5 w-3.5 shrink-0 rounded object-contain"
                             />
                           ) : (
                             <span className={`inline-block h-1.5 w-1.5 rounded-full ${isLightMode ? 'bg-zinc-400' : 'bg-zinc-500'}`} />
