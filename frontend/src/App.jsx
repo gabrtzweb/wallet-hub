@@ -15,6 +15,7 @@ function Dashboard() {
 
   const navigate = useNavigate()
   const location = useLocation()
+  const text = COPY[language]
 
   useEffect(() => {
     localStorage.setItem('wallet-hub-theme', theme)
@@ -24,7 +25,36 @@ function Dashboard() {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
-  const text = COPY[language]
+  useEffect(() => {
+    const path = location.pathname
+
+    let dynamicTitle = 'Wallet Hub - Dashboard'
+    let dynamicDescription = text.subtitle
+
+    if (path === '/flow') {
+      dynamicTitle = `Dashboard - ${text.navFlow}`
+      dynamicDescription = text.flowSubtitle
+    } else if (path === '/assets') {
+      dynamicTitle = `Dashboard - ${text.navAssets}`
+      dynamicDescription = text.assetsSubtitle
+    } else if (path === '/connections') {
+      dynamicTitle = `Dashboard - ${text.navConnections}`
+      dynamicDescription = text.connectionsSubtitle
+    }
+
+    document.title = dynamicTitle
+
+    const existingMeta = document.querySelector('meta[name="description"]')
+    if (existingMeta) {
+      existingMeta.setAttribute('content', dynamicDescription)
+    } else {
+      const meta = document.createElement('meta')
+      meta.setAttribute('name', 'description')
+      meta.setAttribute('content', dynamicDescription)
+      document.head.appendChild(meta)
+    }
+  }, [location.pathname, text])
+
   const isLightMode = theme === 'light'
   const isFlowView = location.pathname === '/flow'
   const isAssetsView = location.pathname === '/assets'

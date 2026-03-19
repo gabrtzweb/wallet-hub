@@ -309,7 +309,7 @@ function OverviewPage({
         )}
       </section>
 
-      <section className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <article className={`${glassCardClass} p-4`}>
           <h3 className={`mb-4 flex items-center gap-2 ${topCardTitleClass}`}>
             <Donut className="h-[18px] w-[18px] text-[#1f67ff]" />
@@ -475,9 +475,6 @@ function OverviewPage({
                     <span className="font-semibold tabular-nums text-[#f87171]">{formatMoney(bill.used)}</span>
                   </div>
                   <p className={`mt-0.5 text-xs ${secondaryTextClass}`}>{text.usedLabel}: {formatMoney(bill.used)} {text.usedOf} {formatMoney(bill.limit)}</p>
-                  <div className={`mt-1.5 h-1.5 w-full rounded-full ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-800'}`}>
-                    <div className="h-1.5 rounded-full bg-[#f87171]" style={{ width: `${bill.usage.toFixed(0)}%` }} />
-                  </div>
                 </div>
               ))}
             </div>

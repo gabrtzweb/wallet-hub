@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Coins, Search } from 'lucide-react'
 
 function FlowPage({
   glassCardClass,
@@ -18,6 +18,11 @@ function FlowPage({
 }) {
   return (
     <section className={`${glassCardClass} overflow-hidden`}>
+      <div className={`flex items-center gap-2 border-b px-4 pt-4 pb-3 md:px-5 ${cardSubtleDividerClass}`}>
+        <Coins className="h-[18px] w-[18px] text-[#1f67ff]" />
+        <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>Despesas</h3>
+      </div>
+
       <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
         <div className="flex items-center gap-3">
           <button className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${isLightMode ? 'bg-white text-zinc-600' : 'bg-zinc-900/70 text-zinc-400'}`}>
