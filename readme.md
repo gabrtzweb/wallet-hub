@@ -90,9 +90,32 @@ npm run dev
 
 This will start both the backend API server (`http://localhost:3000`) and the frontend dev server (`http://localhost:5173`) simultaneously.
 
+### 4) Stop or Restart Development
+
+From the root folder:
+
+```bash
+npm run stop
+```
+
+Stops both backend and frontend dev servers by freeing ports `3000` and `5173`.
+
+```bash
+npm run restart
+```
+
+Stops both servers and starts them again in one command.
+
 **Frontend default URL:** `http://localhost:5173`
 
 ## Available Scripts
+
+Root (`package.json`):
+
+- `npm run install:all`: installs backend and frontend dependencies.
+- `npm run dev`: starts backend and frontend together.
+- `npm run stop`: stops backend/frontend dev servers on ports `3000` and `5173`.
+- `npm run restart`: runs `stop` and starts both servers again.
 
 Backend (`backend/package.json`):
 

@@ -21,11 +21,6 @@ const sendPrettyJson = (res, statusCode, payload) => {
   res.send(JSON.stringify(payload, null, 2));
 };
 
-const FALLBACK_ITEM_IDS = [
-  '115ae3ff-be4b-4330-8278-7de1d99e3a7b',
-  '481ff23b-9bf0-4618-8c94-f046a27fbbc9',
-];
-
 const getArrayResults = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.results)) return payload.results;
@@ -177,7 +172,7 @@ const fetchConnectedItemIds = async () => {
     return configuredIds;
   }
 
-  return FALLBACK_ITEM_IDS;
+  throw new Error('No item IDs configured. Set PLUGGY_DASHBOARD_ITEM_IDS in backend/.env.');
 };
 
 // Health check endpoint
