@@ -120,7 +120,7 @@ function Dashboard() {
 
   const primaryTextClass = isLightMode ? 'text-[#080a0f]' : 'text-[#e9f0ff]'
   const secondaryTextClass = isLightMode ? 'text-zinc-600' : 'text-zinc-500'
-  const cardPrimaryDividerClass = isLightMode ? 'border-zinc-400/90' : 'border-zinc-500/90'
+  const cardPrimaryDividerClass = isLightMode ? 'border-zinc-300/45' : 'border-zinc-700/45'
   const cardSubtleDividerClass = isLightMode ? 'border-zinc-300/45' : 'border-zinc-700/45'
   const navActiveClass = isLightMode
     ? 'rounded-lg bg-[rgba(31,103,255,0.85)] px-2 py-1 text-xs font-semibold text-white md:px-2.5 md:text-[14px]'
@@ -141,7 +141,7 @@ function Dashboard() {
     : 'inline-flex items-center rounded-lg bg-zinc-900/70 p-0.5'
   const investmentToggleInactiveClass = isLightMode ? 'text-zinc-600' : 'text-zinc-400'
   const investmentBarTrackClass = isLightMode ? 'bg-zinc-200' : 'bg-zinc-800'
-  const investmentBarFillClass = isLightMode ? 'bg-zinc-400' : 'bg-zinc-600'
+  const investmentBarFillClass = 'bg-[#60a5fa]'
 
   const glassCardClass = isLightMode
     ? 'rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(255,255,255,0.72)] backdrop-blur-[8px]'
@@ -222,8 +222,11 @@ function Dashboard() {
           )}
 
           {!isHomeView && loading && (
-            <div className={`${glassCardClass} p-8 text-center ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
-              {text.loadingDashboard}
+            <div className="mx-auto w-full max-w-2xl pt-8 flex justify-center items-center min-h-[300px]">
+              <div className={`${glassCardClass} border-blue-500/30 bg-blue-500/10 p-7 text-center text-blue-100 flex items-center justify-center`}>
+                <p className="text-lg font-semibold mr-4">{text.loadingDashboard}</p>
+                <div className="animate-spin rounded-full border-4 border-blue-400 border-t-transparent h-10 w-10" />
+              </div>
             </div>
           )}
 
@@ -360,6 +363,8 @@ function Dashboard() {
                       creditAccounts={sortedCreditAccounts}
                       investments={investments}
                       transactions={transactions}
+                      getNormalizedAmount={getNormalizedAmount}
+                      onCredentialsSaved={loadDashboard}
                     />
                   }
                 />

@@ -8,6 +8,9 @@ import {
   getInstitutionName,
   getInvestmentValue,
 } from '../config/dashboardConfig'
+import { getStoredManualConnections, getStoredManualWalletTransactions, toPhysicalWalletAccount, isManualWalletConnection } from '../utils/manualConnections'
+import { getPluggyRequestHeaders } from '../utils/pluggyCredentials'
+import walletLogo from '../assets/bank-wallet.png'
 
 function useDashboardData({ language, text }) {
   const [bankAccounts, setBankAccounts] = useState([])
@@ -47,7 +50,11 @@ function useDashboardData({ language, text }) {
     setError('')
 
     try {
-      const response = await fetch(`${API_BASE}/dashboard-data`)
+      const response = await fetch(`${API_BASE}/dashboard-data`, {
+        headers: {
+          ...getPluggyRequestHeaders(),
+        },
+      })
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
@@ -58,10 +65,19 @@ function useDashboardData({ language, text }) {
 
       const payload = await response.json()
 
-      setBankAccounts(getArrayResults(payload?.bankAccounts))
+      const manualConnections = getStoredManualConnections()
+      const manualWalletAccounts = manualConnections.map((connection) => toPhysicalWalletAccount(connection))
+      const manualWalletTransactions = manualConnections.flatMap((connection) =>
+        getStoredManualWalletTransactions(connection.id, text, connection),
+      )
+
+      const apiBankAccounts = getArrayResults(payload?.bankAccounts)
+      const apiTransactions = getArrayResults(payload?.transactions)
+
+      setBankAccounts([...apiBankAccounts, ...manualWalletAccounts])
       setCreditAccounts(getArrayResults(payload?.creditCards))
       setInvestments(getArrayResults(payload?.investments))
-      setTransactions(getArrayResults(payload?.transactions))
+      setTransactions([...apiTransactions, ...manualWalletTransactions])
       setBalanceEvolution(getArrayResults(payload?.balanceEvolution))
       setLastSyncedAt(new Date())
 
@@ -72,11 +88,29 @@ function useDashboardData({ language, text }) {
         setError(`${text.partialRefreshPrefix} (${institutionName}). ${text.partialRefreshSuffix}`)
       }
     } catch (err) {
+      const manualConnections = getStoredManualConnections()
+      const manualWalletAccounts = manualConnections.map((connection) => toPhysicalWalletAccount(connection))
+      const manualWalletTransactions = manualConnections.flatMap((connection) =>
+        getStoredManualWalletTransactions(connection.id, text, connection),
+      )
+
+      setBankAccounts(manualWalletAccounts)
+      setCreditAccounts([])
+      setInvestments([])
+      setTransactions(manualWalletTransactions)
+      setBalanceEvolution([])
       setError(err instanceof Error ? err.message : text.fallbackLoadError)
     } finally {
       setLoading(false)
     }
-  }, [text.fallbackLoadError, text.loadDashboardError, text.partialRefreshPrefix, text.partialRefreshSuffix, text.unknownItem])
+  }, [
+    text,
+    text.fallbackLoadError,
+    text.loadDashboardError,
+    text.partialRefreshPrefix,
+    text.partialRefreshSuffix,
+    text.unknownItem,
+  ])
 
   useEffect(() => {
     loadDashboard()
@@ -87,10 +121,32 @@ function useDashboardData({ language, text }) {
     [bankAccounts],
   )
 
-  const sortedBankAccounts = useMemo(
-    () => [...bankAccounts].sort((first, second) => (Number(second.balance) || 0) - (Number(first.balance) || 0)),
-    [bankAccounts],
-  )
+  const sortedBankAccounts = useMemo(() => {
+    // Separate manual wallet accounts from regular bank accounts
+    const manualWallets = bankAccounts.filter((account) => isManualWalletConnection(account))
+    const regularAccounts = bankAccounts.filter((account) => !isManualWalletConnection(account))
+
+    // If there are manual wallets, create a grouped Physical Wallet entry
+    let result = regularAccounts
+    if (manualWallets.length > 0) {
+      const totalBalance = manualWallets.reduce((sum, wallet) => sum + (Number(wallet.balance) || 0), 0)
+      const groupedPhysicalWallet = {
+        itemId: 'manual-wallets-group',
+        id: 'manual-wallets-group',
+        connectionType: 'MANUAL_WALLET',
+        name: text.connectionsPhysicalConnectionLabel || 'Physical Wallet',
+        marketingName: text.connectionsPhysicalConnectionLabel || 'Physical Wallet',
+        balance: totalBalance,
+        currency: 'BRL',
+        logo: walletLogo,
+        type: 'BANK',
+      }
+      result = [...regularAccounts, groupedPhysicalWallet]
+    }
+
+    // Sort by balance
+    return result.sort((first, second) => (Number(second.balance) || 0) - (Number(first.balance) || 0))
+  }, [bankAccounts, text])
 
   const creditLimitTotal = useMemo(
     () => creditAccounts.reduce((sum, account) => sum + (Number(getCreditLimit(account)) || 0), 0),
@@ -200,8 +256,24 @@ function useDashboardData({ language, text }) {
   const recentTransactions = useMemo(
     () => [...transactions]
       .sort((first, second) => {
-        const firstDate = new Date(first?.date || first?.paymentDate || first?.createdAt || 0).getTime()
-        const secondDate = new Date(second?.date || second?.paymentDate || second?.createdAt || 0).getTime()
+        const firstDateObj = new Date(first?.date || first?.paymentDate || first?.createdAt || 0)
+        const secondDateObj = new Date(second?.date || second?.paymentDate || second?.createdAt || 0)
+
+        const firstDayKey = Number.isNaN(firstDateObj.getTime())
+          ? 0
+          : new Date(firstDateObj.getFullYear(), firstDateObj.getMonth(), firstDateObj.getDate()).getTime()
+        const secondDayKey = Number.isNaN(secondDateObj.getTime())
+          ? 0
+          : new Date(secondDateObj.getFullYear(), secondDateObj.getMonth(), secondDateObj.getDate()).getTime()
+
+        if (secondDayKey !== firstDayKey) return secondDayKey - firstDayKey
+
+        const firstCreatedAt = new Date(first?.createdAt || 0).getTime()
+        const secondCreatedAt = new Date(second?.createdAt || 0).getTime()
+        if (firstCreatedAt !== secondCreatedAt) return secondCreatedAt - firstCreatedAt
+
+        const firstDate = Number.isNaN(firstDateObj.getTime()) ? 0 : firstDateObj.getTime()
+        const secondDate = Number.isNaN(secondDateObj.getTime()) ? 0 : secondDateObj.getTime()
         return secondDate - firstDate
       })
       .slice(0, 3),
@@ -370,8 +442,24 @@ function useDashboardData({ language, text }) {
 
   const flowTransactions = useMemo(
     () => [...selectedMonthTransactions].sort((first, second) => {
-      const firstDate = getTransactionDate(first)?.getTime() || 0
-      const secondDate = getTransactionDate(second)?.getTime() || 0
+      const firstDateObj = getTransactionDate(first)
+      const secondDateObj = getTransactionDate(second)
+
+      const firstDayKey = firstDateObj
+        ? new Date(firstDateObj.getFullYear(), firstDateObj.getMonth(), firstDateObj.getDate()).getTime()
+        : 0
+      const secondDayKey = secondDateObj
+        ? new Date(secondDateObj.getFullYear(), secondDateObj.getMonth(), secondDateObj.getDate()).getTime()
+        : 0
+
+      if (secondDayKey !== firstDayKey) return secondDayKey - firstDayKey
+
+      const firstCreatedAt = new Date(first?.createdAt || 0).getTime()
+      const secondCreatedAt = new Date(second?.createdAt || 0).getTime()
+      if (firstCreatedAt !== secondCreatedAt) return secondCreatedAt - firstCreatedAt
+
+      const firstDate = firstDateObj?.getTime() || 0
+      const secondDate = secondDateObj?.getTime() || 0
       return secondDate - firstDate
     }),
     [getTransactionDate, selectedMonthTransactions],

@@ -4,11 +4,6 @@ const cors = require('cors');
 
 const { PluggyClient } = require('pluggy-sdk');
 
-const pluggyClient = new PluggyClient({
-  clientId: process.env.PLUGGY_CLIENT_ID,
-  clientSecret: process.env.PLUGGY_CLIENT_SECRET,
-});
-
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -25,6 +20,51 @@ const getArrayResults = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.results)) return payload.results;
   return [];
+};
+
+const parseItemIds = (rawValue) =>
+  String(rawValue || '')
+    .split(/[,\n]/)
+    .map((itemId) => itemId.trim())
+    .filter(Boolean);
+
+const getPluggyHeaders = (req) => {
+  const clientId = String(req.headers['x-pluggy-client-id'] || '').trim();
+  const clientSecret = String(req.headers['x-pluggy-client-secret'] || '').trim();
+  const itemIds = parseItemIds(req.headers['x-pluggy-item-ids']);
+
+  return {
+    clientId,
+    clientSecret,
+    itemIds,
+  };
+};
+
+const withPluggyContext = ({ requireItemIds = false } = {}) => (req, res, next) => {
+  const { clientId, clientSecret, itemIds } = getPluggyHeaders(req);
+
+  if (!clientId || !clientSecret) {
+    return sendPrettyJson(res, 400, {
+      error: 'Missing Pluggy credentials headers.',
+      requiredHeaders: ['x-pluggy-client-id', 'x-pluggy-client-secret', 'x-pluggy-item-ids'],
+    });
+  }
+
+  if (requireItemIds && itemIds.length === 0) {
+    return sendPrettyJson(res, 400, {
+      error: 'Missing Pluggy item IDs header.',
+      requiredHeaders: ['x-pluggy-item-ids'],
+    });
+  }
+
+  req.pluggyContext = {
+    client: new PluggyClient({ clientId, clientSecret }),
+    itemIds,
+    clientIdPreview: `${clientId.slice(0, 8)}...`,
+    hasClientSecret: Boolean(clientSecret),
+  };
+
+  next();
 };
 
 const toIsoDate = (date) => {
@@ -67,7 +107,7 @@ const getTransactionDate = (transaction) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const fetchTransactionsForItem = async (itemId, knownAccounts = []) => {
+const fetchTransactionsForItem = async (pluggyClient, itemId, knownAccounts = []) => {
   const accounts = knownAccounts.length > 0 ? knownAccounts : getArrayResults(await pluggyClient.fetchAccounts(itemId));
 
   const transactionPages = await Promise.allSettled(
@@ -147,60 +187,32 @@ const buildMonthlyBalanceEvolution = ({ currentTotal, transactions, accountTypeB
   return points;
 };
 
-const getConfiguredItemIds = () => {
-  const envItemIds = process.env.PLUGGY_DASHBOARD_ITEM_IDS;
-  if (!envItemIds) return [];
-
-  return envItemIds
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean);
-};
-
-const fetchConnectedItemIds = async () => {
-  if (typeof pluggyClient.listItems === 'function') {
-    const itemsPage = await pluggyClient.listItems();
-    return getArrayResults(itemsPage).map((item) => item.id).filter(Boolean);
-  }
-
-  // The current SDK version does not expose listItems();
-  // use configured IDs directly to avoid unauthorized /items probing.
-  console.warn('listItems() is unavailable in this SDK version, using configured item IDs.');
-
-  const configuredIds = getConfiguredItemIds();
-  if (configuredIds.length > 0) {
-    return configuredIds;
-  }
-
-  throw new Error('No item IDs configured. Set PLUGGY_DASHBOARD_ITEM_IDS in backend/.env.');
-};
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'Backend is running securely' });
+  res.json({ status: 'Backend is running securely' });
 });
 
 // Debug endpoint to verify Pluggy credentials and list available items
-app.get('/api/debug/pluggy', async (req, res) => {
+app.get('/api/debug/pluggy', withPluggyContext({ requireItemIds: false }), async (req, res) => {
   try {
+    const { client, itemIds, clientIdPreview, hasClientSecret } = req.pluggyContext;
+
     const credentialsInfo = {
-      clientId: process.env.PLUGGY_CLIENT_ID ? `${process.env.PLUGGY_CLIENT_ID.substring(0, 8)}...` : '✗ Missing',
-      clientSecret: process.env.PLUGGY_CLIENT_SECRET ? `${process.env.PLUGGY_CLIENT_SECRET.substring(0, 8)}...` : '✗ Missing',
-      configuredItemIds: getConfiguredItemIds(),
+      clientId: clientIdPreview,
+      clientSecret: hasClientSecret ? '********' : '✗ Missing',
+      configuredItemIds: itemIds,
     };
 
-    // Try to fetch accounts for the first configured item to test credentials
-    const itemIds = getConfiguredItemIds();
     if (itemIds.length === 0) {
       return sendPrettyJson(res, 400, {
         credentials: credentialsInfo,
-        error: 'No item IDs configured in PLUGGY_DASHBOARD_ITEM_IDS',
+        error: 'No item IDs configured in x-pluggy-item-ids header',
       });
     }
 
     try {
       const firstItemId = itemIds[0];
-      const testAccounts = await pluggyClient.fetchAccounts(firstItemId);
+      const testAccounts = await client.fetchAccounts(firstItemId);
       return sendPrettyJson(res, 200, {
         credentials: credentialsInfo,
         pluggyConnected: true,
@@ -221,12 +233,11 @@ app.get('/api/debug/pluggy', async (req, res) => {
   }
 });
 
-// Now it accepts the item ID in the URL
-app.get('/api/accounts/:itemId', async (req, res) => {
+app.get('/api/accounts/:itemId', withPluggyContext({ requireItemIds: false }), async (req, res) => {
   try {
     const { itemId } = req.params;
-    // The correct method to view balance and accounts is fetchAccounts.
-    const accounts = await pluggyClient.fetchAccounts(itemId);
+    const { client } = req.pluggyContext;
+    const accounts = await client.fetchAccounts(itemId);
     res.json(accounts);
   } catch (error) {
     console.error('Pluggy API Error:', error);
@@ -234,10 +245,11 @@ app.get('/api/accounts/:itemId', async (req, res) => {
   }
 });
 
-app.get('/api/transactions/:itemId', async (req, res) => {
+app.get('/api/transactions/:itemId', withPluggyContext({ requireItemIds: false }), async (req, res) => {
   try {
     const { itemId } = req.params;
-    const mergedTransactions = await fetchTransactionsForItem(itemId);
+    const { client } = req.pluggyContext;
+    const mergedTransactions = await fetchTransactionsForItem(client, itemId);
 
     return res.json({
       total: mergedTransactions.length,
@@ -249,10 +261,11 @@ app.get('/api/transactions/:itemId', async (req, res) => {
   }
 });
 
-app.get('/api/investments/:itemId', async (req, res) => {
+app.get('/api/investments/:itemId', withPluggyContext({ requireItemIds: false }), async (req, res) => {
   try {
     const { itemId } = req.params;
-    const investments = await pluggyClient.fetchInvestments(itemId);
+    const { client } = req.pluggyContext;
+    const investments = await client.fetchInvestments(itemId);
     res.json(investments);
   } catch (error) {
     console.error('Pluggy Investments Error:', error);
@@ -260,19 +273,20 @@ app.get('/api/investments/:itemId', async (req, res) => {
   }
 });
 
-app.get('/api/debug/monthly-evolution', async (req, res) => {
+app.get('/api/debug/monthly-evolution', withPluggyContext({ requireItemIds: true }), async (req, res) => {
   try {
-    const itemIds = [...new Set(await fetchConnectedItemIds())];
+    const { client, itemIds } = req.pluggyContext;
+    const uniqueItemIds = [...new Set(itemIds)];
 
     const debugPerItem = await Promise.all(
-      itemIds.map(async (itemId) => {
+      uniqueItemIds.map(async (itemId) => {
         try {
-          const accounts = getArrayResults(await pluggyClient.fetchAccounts(itemId));
+          const accounts = getArrayResults(await client.fetchAccounts(itemId));
           let transactions = [];
           let transactionError = null;
 
           try {
-            transactions = await fetchTransactionsForItem(itemId, accounts);
+            transactions = await fetchTransactionsForItem(client, itemId, accounts);
           } catch (err) {
             transactionError = err.message || String(err);
           }
@@ -320,8 +334,8 @@ app.get('/api/debug/monthly-evolution', async (req, res) => {
     const allTransactions = [];
     let currentTotal = 0;
 
-    for (const itemId of itemIds) {
-      const accounts = getArrayResults(await pluggyClient.fetchAccounts(itemId));
+    for (const itemId of uniqueItemIds) {
+      const accounts = getArrayResults(await client.fetchAccounts(itemId));
       allAccounts.push(...accounts.map((a) => ({ ...a, itemId })));
       currentTotal += accounts
         .filter((a) => a.type === 'BANK')
@@ -330,7 +344,7 @@ app.get('/api/debug/monthly-evolution', async (req, res) => {
         .filter((a) => a.type === 'CREDIT')
         .reduce((sum, a) => sum + Math.abs(Number(a.balance) || 0), 0);
 
-      const txns = await fetchTransactionsForItem(itemId, accounts);
+      const txns = await fetchTransactionsForItem(client, itemId, accounts);
       allTransactions.push(...txns.map((t) => ({ ...t, itemId })));
     }
 
@@ -365,22 +379,23 @@ app.get('/api/debug/monthly-evolution', async (req, res) => {
   }
 });
 
-app.get('/api/dashboard-data', async (req, res) => {
+app.get('/api/dashboard-data', withPluggyContext({ requireItemIds: true }), async (req, res) => {
   try {
-    const itemIds = [...new Set(await fetchConnectedItemIds())];
+    const { client, itemIds } = req.pluggyContext;
+    const uniqueItemIds = [...new Set(itemIds)];
 
     const perItemResults = await Promise.allSettled(
-      itemIds.map(async (itemId) => {
+      uniqueItemIds.map(async (itemId) => {
         const [accountsResponse, investmentsResponse] = await Promise.all([
-          pluggyClient.fetchAccounts(itemId),
-          pluggyClient.fetchInvestments(itemId),
+          client.fetchAccounts(itemId),
+          client.fetchInvestments(itemId),
         ]);
 
         const accounts = getArrayResults(accountsResponse);
         let transactions = [];
 
         try {
-          transactions = await fetchTransactionsForItem(itemId, accounts);
+          transactions = await fetchTransactionsForItem(client, itemId, accounts);
         } catch (transactionError) {
           console.warn(`Failed to fetch transactions for item ${itemId}:`, transactionError?.message || transactionError);
         }
@@ -398,7 +413,7 @@ app.get('/api/dashboard-data', async (req, res) => {
     const failedItems = [];
 
     perItemResults.forEach((result, index) => {
-      const itemId = itemIds[index];
+      const itemId = uniqueItemIds[index];
 
       if (result.status === 'fulfilled') {
         perItemPayload.push(result.value);
@@ -468,5 +483,5 @@ app.get('/api/dashboard-data', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });

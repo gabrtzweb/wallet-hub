@@ -2,6 +2,12 @@
 
 Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
 
+**Latest Features:**
+- Manual Wallet support (track physical cash)
+- Improved loading UI with animation and card style
+- Custom sorting logic for connections (Pluggy Automated, Manual Import, Physical Wallet)
+- Pixel-perfect UI alignment and micro-interactions
+
 ## Overview
 
 - Consolidated financial dashboard with real account data.
@@ -78,14 +84,9 @@ npm run install:all
 
 ### 2) Environment
 
-Create `backend/.env` with:
 
-```env
-PLUGGY_CLIENT_ID=your_client_id
-PLUGGY_CLIENT_SECRET=your_client_secret
-PLUGGY_DASHBOARD_ITEM_IDS=item_id_1,item_id_2
-PORT=3000
-```
+
+No backend `.env` file is required. Pluggy credentials are provided by the user at runtime (BYOK) in the UI (`Connections` page).
 
 ### 3) Start Development
 
@@ -115,6 +116,18 @@ Stops both servers and starts them again in one command.
 
 **Frontend default URL:** `http://localhost:5173`
 
+### 5) BYOK Flow (Bring Your Own Key)
+
+1. Open `/connections`.
+2. Click `+ Nova conexão`.
+3. Fill in:
+	- Pluggy Client ID
+	- Pluggy Client Secret
+	- Item IDs (comma or line separated)
+4. Save credentials.
+
+The frontend stores these credentials in browser `localStorage` and injects them into backend request headers.
+
 ## Available Scripts
 
 Root (`package.json`):
@@ -142,6 +155,12 @@ Main endpoint:
 
 - `GET /api/dashboard-data`
 
+Required headers for Pluggy requests:
+
+- `x-pluggy-client-id`
+- `x-pluggy-client-secret`
+- `x-pluggy-item-ids`
+
 Returns consolidated arrays for:
 
 - `bankAccounts`
@@ -158,9 +177,8 @@ Returns consolidated arrays for:
 - Integration is read-only by design in this project.
 
 ## Roadmap
-
-- Manual connection support for non-Open Finance institutions.
-- Enhanced UI/UX design refinements and micro-interactions.
-- Additional data visualizations and analytics cards.
-- Upcoming payments and bill tracking features.
-- Add automated tests for data normalization and financial totals.
+- Expand manual connection support for non-Open Finance institutions
+- Further UI/UX refinements and accessibility improvements
+- Additional data visualizations and analytics cards
+- Upcoming payments and bill tracking features
+- Automated tests for data normalization and financial totals

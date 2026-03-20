@@ -131,11 +131,13 @@ function AssetsPage({
   return (
     <section className="w-full space-y-4">
       <article className={`${glassCardClass} w-full overflow-hidden`}>
-        <div className={`flex items-center justify-between border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
-          <h2 className={`flex items-center gap-2 ${topCardTitleClass}`}>
+        <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
+          <div className="flex items-center gap-2 -ml-1">
             <BriefcaseBusiness className="h-[18px] w-[18px] text-[#1f67ff]" />
-            <span>{text.assetsPortfolioLabel} ({investments.length} {text.assetsLabel})</span>
-          </h2>
+            <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
+              {text.assetsPortfolioLabel} ({investments.length} {text.assetsLabel})
+            </h3>
+          </div>
           <span className="text-2xl font-bold tabular-nums text-[#22c55e]">{formatMoney(investmentsTotal)}</span>
         </div>
 
@@ -182,7 +184,7 @@ function AssetsPage({
                           aria-expanded={isExpanded}
                         >
                           <div className="flex min-w-0 items-start gap-3 pr-4">
-                            <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${isLightMode ? 'bg-zinc-100 text-zinc-500' : 'bg-zinc-900/70 text-zinc-400'}`}>
+                            <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${isLightMode ? 'bg-sky-100/80 text-[#60a5fa]' : 'bg-sky-500/10 text-[#60a5fa]'}`}>
                               <TrendingUp className="h-5 w-5" />
                             </span>
 
@@ -203,7 +205,7 @@ function AssetsPage({
 
                           <div className="text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              <p className="text-sm font-semibold tabular-nums text-[#22c55e]">{formatMoney(value)}</p>
+                              <p className="text-sm font-semibold tabular-nums text-[#60a5fa]">{formatMoney(value)}</p>
                               <span className={`inline-flex h-5 w-5 items-center justify-center rounded ${isLightMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
                                 {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                               </span>
@@ -234,7 +236,7 @@ function AssetsPage({
                             <p className={`mb-2 text-[10px] font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.assetsMovementsLabel}</p>
                             <div className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300/70 bg-zinc-50/70' : 'border-zinc-700/60 bg-zinc-900/30'}`}>
                               <div className="flex min-w-0 items-center gap-2 pr-4">
-                                <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isLightMode ? 'bg-emerald-100 text-[#22c55e]' : 'bg-emerald-500/10 text-[#22c55e]'}`}>
+                                <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isLightMode ? 'bg-sky-100 text-[#60a5fa]' : 'bg-sky-500/10 text-[#60a5fa]'}`}>
                                   <ArrowDownRight className="h-3 w-3" />
                                 </span>
                                 <div className="min-w-0">
@@ -242,7 +244,7 @@ function AssetsPage({
                                   <p className={`text-[10px] ${secondaryTextClass}`}>{movementDate}</p>
                                 </div>
                               </div>
-                              <span className="text-sm font-semibold tabular-nums text-[#22c55e]">
+                              <span className="text-sm font-semibold tabular-nums text-[#60a5fa]">
                                 {movementAmount == null ? text.assetsNotAvailable : formatMoney(movementAmount)}
                               </span>
                             </div>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Coins, Search } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Wallet, Search } from 'lucide-react'
 import { getFriendlyAccountLabel } from '../config/dashboardConfig'
 
 function FlowPage({
@@ -140,9 +140,11 @@ function FlowPage({
 
   return (
     <section className={`${glassCardClass} overflow-hidden`}>
-      <div className={`flex items-center gap-2 border-b px-4 pt-4 pb-3 md:px-5 ${cardSubtleDividerClass}`}>
-        <Coins className="h-[18px] w-[18px] text-[#1f67ff]" />
-        <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>Despesas</h3>
+      <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
+        <div className="flex items-center gap-2 -ml-1 translate-y-[6px]">
+          <Wallet className="h-[18px] w-[18px] text-[#1f67ff]" />
+          <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>Despesas</h3>
+        </div>
       </div>
 
       <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
@@ -255,17 +257,23 @@ function FlowPage({
                 const accountMeta = accountMetadataById.get(transaction?.accountId || transaction?.account?.id || null)
                 const accountName = getFriendlyAccountLabel(accountMeta || transaction?.account, language, text.accountUnit)
                 const categoryName = transaction?.category || text.uncategorized
+                const searchableInvestmentText = `${String(categoryName)} ${String(transaction?.description || '')}`.toLowerCase()
+                const isInvestmentTransaction = /(invest|investment|investimento|aplica|aplicacao|aplicação|rdb|cdb|buy|sell)/i.test(searchableInvestmentText)
+
+                const badgeClass = isInvestmentTransaction
+                  ? (isLightMode ? 'bg-sky-100/80 text-[#60a5fa]' : 'bg-sky-500/10 text-[#60a5fa]')
+                  : (isLightMode
+                      ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
+                      : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]')
+
+                const valueClass = isInvestmentTransaction
+                  ? 'text-[#60a5fa]'
+                  : (isIncome ? 'text-[#22c55e]' : 'text-[#f87171]')
 
                 return (
                   <div key={transaction.id} className={`flex items-center justify-between border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
                     <div className="flex min-w-0 items-center gap-3 pr-4">
-                      <span
-                        className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-                          isLightMode
-                            ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
-                            : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
-                        }`}
-                      >
+                      <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${badgeClass}`}>
                         {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
                       </span>
 
@@ -288,7 +296,7 @@ function FlowPage({
                       </div>
                     </div>
 
-                    <span className={`text-sm font-semibold tabular-nums ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
+                    <span className={`text-sm font-semibold tabular-nums ${valueClass}`}>
                       {isIncome ? '+' : '-'}{formatMoney(Math.abs(normalizedAmount))}
                     </span>
                   </div>
