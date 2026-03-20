@@ -7,11 +7,18 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
 - Consolidated financial dashboard with real account data.
 - Read-only Open Finance integration through Pluggy.
 - Dedicated pages:
-	- `/` Overview
+	- `/` Home (landing)
+	- `/overview` Overview
 	- `/flow` Cash Flow (Flow)
 	- `/assets` Assets
 	- `/connections` Connections
 - Localized UI (`PT`/`EN`) with dark and light themes.
+
+## Pluggy Resources
+
+- Meu Pluggy: `https://meu.pluggy.ai/`
+- Pluggy Dashboard: `https://dashboard.pluggy.ai/`
+- Meu Pluggy GitHub repo: `https://github.com/pluggyai/meu-pluggy`
 
 ## Current Status
 

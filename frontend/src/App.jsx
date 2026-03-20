@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardFooter from './components/DashboardFooter'
 import DashboardHeader from './components/DashboardHeader'
 import { COPY, getBankLogo } from './config/dashboardConfig'
@@ -7,6 +7,7 @@ import useDashboardData from './hooks/useDashboardData'
 import AssetsPage from './pages/AssetsPage'
 import ConnectionsPage from './pages/ConnectionsPage'
 import FlowPage from './pages/FlowPage'
+import HomePage from './pages/HomePage'
 import OverviewPage from './pages/OverviewPage'
 
 function Dashboard() {
@@ -28,10 +29,13 @@ function Dashboard() {
   useEffect(() => {
     const path = location.pathname
 
-    let dynamicTitle = 'Wallet Hub - Dashboard'
-    let dynamicDescription = text.subtitle
+    let dynamicTitle = 'Wallet Hub'
+    let dynamicDescription = text.homeSubtitle
 
-    if (path === '/flow') {
+    if (path === '/overview') {
+      dynamicTitle = `Dashboard - ${text.navOverview}`
+      dynamicDescription = text.subtitle
+    } else if (path === '/flow') {
       dynamicTitle = `Dashboard - ${text.navFlow}`
       dynamicDescription = text.flowSubtitle
     } else if (path === '/assets') {
@@ -56,6 +60,8 @@ function Dashboard() {
   }, [location.pathname, text])
 
   const isLightMode = theme === 'light'
+  const isHomeView = location.pathname === '/'
+  const isOverviewView = location.pathname === '/overview'
   const isFlowView = location.pathname === '/flow'
   const isAssetsView = location.pathname === '/assets'
   const isConnectionsView = location.pathname === '/connections'
@@ -104,6 +110,9 @@ function Dashboard() {
     flowGroupedTransactions,
     lastSyncedText,
   } = useDashboardData({ language, text })
+
+  const hasLoadError = !loading && Boolean(error)
+  const shouldLockDashboardView = hasLoadError && !isConnectionsView && !isHomeView
 
   const topCardTitleClass = isLightMode
     ? 'text-xs font-semibold uppercase tracking-wider text-zinc-600'
@@ -178,7 +187,7 @@ function Dashboard() {
       : isConnectionsView
         ? text.connectionsSubtitle
         : text.subtitle
-  const showPageHeader = true
+  const showPageHeader = !isHomeView && !shouldLockDashboardView
 
   return (
     <main className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#080a0f]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}>
@@ -189,6 +198,8 @@ function Dashboard() {
         navActiveClass={navActiveClass}
         navInactiveClass={navInactiveClass}
         navigate={navigate}
+        isHomeView={isHomeView}
+        isOverviewView={isOverviewView}
         isFlowView={isFlowView}
         isAssetsView={isAssetsView}
         isConnectionsView={isConnectionsView}
@@ -210,24 +221,36 @@ function Dashboard() {
             </header>
           )}
 
-          {loading && (
+          {!isHomeView && loading && (
             <div className={`${glassCardClass} p-8 text-center ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
               {text.loadingDashboard}
             </div>
           )}
 
-          {!loading && error && (
-            <div className={`${glassCardClass} border-rose-500/30 bg-rose-500/10 p-6 text-rose-300`}>
-              <p className="font-semibold">{text.dashboardUnavailable}</p>
-              <p className="mt-1 text-sm">{error}</p>
+          {hasLoadError && !isConnectionsView && !isHomeView && (
+            <div className="mx-auto w-full max-w-2xl pt-8">
+              <div className={`${glassCardClass} border-rose-500/30 bg-rose-500/10 p-7 text-center text-rose-100`}>
+                <p className="text-lg font-semibold">{text.dashboardUnavailable}</p>
+                <p className="mt-2 text-sm text-rose-200/90">{text.dashboardUnavailableInstruction}</p>
+                <Link
+                  to="/connections"
+                  className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-white/90 px-5 text-sm font-semibold text-rose-900 transition hover:bg-white"
+                >
+                  {text.homePrimaryCta}
+                </Link>
+              </div>
             </div>
           )}
 
-          {!loading && !error && (
+          {!shouldLockDashboardView && (
             <div className="w-full">
               <Routes>
                 <Route
                   path="/"
+                  element={<HomePage isLightMode={isLightMode} text={text} />}
+                />
+                <Route
+                  path="/overview"
                   element={
                     <OverviewPage
                       glassCardClass={glassCardClass}

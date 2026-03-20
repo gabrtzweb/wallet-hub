@@ -8,6 +8,7 @@ function DashboardHeader({
   navActiveClass,
   navInactiveClass,
   navigate,
+  isOverviewView,
   isFlowView,
   isAssetsView,
   isConnectionsView,
@@ -50,14 +51,14 @@ function DashboardHeader({
             <button
               onClick={() => navigate('/')}
               className={`inline-flex items-center gap-2 rounded-md px-2 py-1 text-lg font-bold tracking-tight md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:text-xl ${isLightMode ? 'text-zinc-900' : 'text-zinc-100'}`}
-              aria-label="Go to overview"
+              aria-label="Go to home"
             >
               <Compass className="h-6 w-6 md:h-7 md:w-7" />
               <span>Wallet Hub</span>
             </button>
 
             <nav className="hidden items-center gap-1.5 md:flex md:w-auto">
-              <button onClick={() => navigate('/')} className={!isFlowView && !isAssetsView && !isConnectionsView ? navActiveClass : navInactiveClass}>
+              <button onClick={() => navigate('/overview')} className={isOverviewView ? navActiveClass : navInactiveClass}>
                 {text.navOverview}
               </button>
               <button onClick={() => navigate('/flow')} className={isFlowView ? navActiveClass : navInactiveClass}>
@@ -104,7 +105,7 @@ function DashboardHeader({
 
         {isMobileMenuOpen && (
           <nav className={`mt-2 grid gap-1 rounded-xl border p-2 md:hidden ${isLightMode ? 'border-zinc-300 bg-white/80' : 'border-zinc-700 bg-zinc-900/70'}`}>
-            <button onClick={() => handleNavigate('/')} className={!isFlowView && !isAssetsView && !isConnectionsView ? mobileNavActiveClass : mobileNavInactiveClass}>
+            <button onClick={() => handleNavigate('/overview')} className={isOverviewView ? mobileNavActiveClass : mobileNavInactiveClass}>
               {text.navOverview}
             </button>
             <button onClick={() => handleNavigate('/flow')} className={isFlowView ? mobileNavActiveClass : mobileNavInactiveClass}>
