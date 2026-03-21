@@ -141,9 +141,9 @@ function FlowPage({
   return (
     <section className={`${glassCardClass} overflow-hidden`}>
       <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
-        <div className="flex items-center gap-2 -ml-1 translate-y-[6px]">
+        <div className="flex items-center gap-2">
           <Wallet className="h-[18px] w-[18px] text-[#1f67ff]" />
-          <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>Despesas</h3>
+          <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.expensesLabel}</h3>
         </div>
       </div>
 
