@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardFooter from './components/DashboardFooter'
 import DashboardHeader from './components/DashboardHeader'
+import noiseTexture from './assets/noise.png'
 import { COPY, getBankLogo } from './config/dashboardConfig'
 import useDashboardData from './hooks/useDashboardData'
 import AssetsPage from './pages/AssetsPage'
@@ -144,12 +145,12 @@ function Dashboard() {
   const investmentBarFillClass = 'bg-[#60a5fa]'
 
   const glassCardClass = isLightMode
-    ? 'rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(255,255,255,0.72)] backdrop-blur-[8px]'
-    : 'rounded-xl border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
+    ? 'rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
+    : 'rounded-xl border border-[rgba(233,240,255,0.20)] bg-[rgba(8,10,15,0.10)] shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-[8px]'
 
   const headerGlassClass = isLightMode
-    ? 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.08)] bg-[rgba(255,255,255,0.72)] backdrop-blur-[8px]'
-    : 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.10)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
+    ? 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
+    : 'fixed left-0 right-0 top-0 z-50 border border-[rgba(233,240,255,0.20)] bg-[rgba(8,10,15,0.10)] shadow-[0_6px_24px_rgba(0,0,0,0.35)] backdrop-blur-[8px]'
 
   const categoryChartColors = useMemo(
     () => [
@@ -191,6 +192,11 @@ function Dashboard() {
 
   return (
     <main className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#080a0f]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-repeat opacity-10"
+        style={{ backgroundImage: `url(${noiseTexture})` }}
+      />
       <DashboardHeader
         headerGlassClass={headerGlassClass}
         isLightMode={isLightMode}
@@ -223,7 +229,7 @@ function Dashboard() {
 
           {!isHomeView && loading && (
             <div className="mx-auto w-full max-w-2xl pt-8 flex justify-center items-center min-h-[300px]">
-              <div className={`${glassCardClass} border-blue-500/30 bg-blue-500/10 p-7 text-center text-blue-100 flex items-center justify-center`}>
+              <div className={`${glassCardClass} border-blue-500/30 bg-blue-500/10 p-7 text-center ${isLightMode ? 'text-[#080a0f]' : 'text-blue-100'} flex items-center justify-center`}>
                 <p className="text-lg font-semibold mr-4">{text.loadingDashboard}</p>
                 <div className="animate-spin rounded-full border-4 border-blue-400 border-t-transparent h-10 w-10" />
               </div>
@@ -245,7 +251,7 @@ function Dashboard() {
             </div>
           )}
 
-          {!shouldLockDashboardView && (
+          {!shouldLockDashboardView && (isHomeView || !loading) && (
             <div className="w-full">
               <Routes>
                 <Route
