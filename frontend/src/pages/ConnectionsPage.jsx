@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock3, Cloud, Copy, CreditCard, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
+import { useMemo, useState, useRef } from 'react'
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
 import walletLogo from '../assets/bank-wallet.png'
 import { getBankLogo, getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
+import { exportBackup, importBackup } from '../utils/backupExport'
 import { clearStoredPluggyCredentials, getPluggyCredentialsDraft, removeStoredPluggyItemId, savePluggyCredentials } from '../utils/pluggyCredentials'
 import {
   appendManualWalletTransaction,
@@ -50,6 +51,9 @@ function ConnectionsPage({
     type: 'INCOME',
     date: getTodayInputDate(),
   })
+  const [backupImportFeedback, setBackupImportFeedback] = useState('')
+  const [backupImportFeedbackType, setBackupImportFeedbackType] = useState('')
+  const fileInputRef = useRef(null)
 
   const manualWalletAccounts = useMemo(
     () => manualConnections.map((entry) => toPhysicalWalletAccount(entry)),
@@ -403,6 +407,42 @@ function ConnectionsPage({
     setCredentialsError('')
     closeCredentialsModal()
     onCredentialsSaved?.()
+  }
+
+  const handleImportBackup = async (event) => {
+    const file = event.target?.files?.[0]
+    if (!file) return
+
+    setBackupImportFeedback('Processing backup...')
+    setBackupImportFeedbackType('loading')
+
+    const result = await importBackup(file)
+
+    if (result.success) {
+      setBackupImportFeedback(result.message)
+      setBackupImportFeedbackType('success')
+      // Reload the page after a short delay to allow user to see the success message
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+    } else {
+      setBackupImportFeedback(result.message)
+      setBackupImportFeedbackType('error')
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setBackupImportFeedback('')
+        setBackupImportFeedbackType('')
+      }, 5000)
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
   }
 
   const handleManualTransactionSubmit = async (event) => {
@@ -1242,11 +1282,28 @@ function ConnectionsPage({
             </span>
           </div>
 
-          <button type="button" onClick={openCredentialsModal} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1f67ff] px-3 text-xs font-semibold text-white">
-            <Plus className="h-4 w-4" />
-            <span>{text.connectionsNewConnection}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={exportBackup} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-500/50 bg-blue-500/10 px-3 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20" title="Download backup of your connections and data">
+              <Download className="h-4 w-4" />
+              <span>{text.connectionsExportBackup || 'Export'}</span>
+            </button>
+            <button type="button" onClick={triggerFileInput} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-green-500/50 bg-green-500/10 px-3 text-xs font-semibold text-green-400 transition hover:bg-green-500/20" title="Restore backup from a JSON file">
+              <Upload className="h-4 w-4" />
+              <span>{text.connectionsImportBackup || 'Import'}</span>
+            </button>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+            <button type="button" onClick={openCredentialsModal} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1f67ff] px-3 text-xs font-semibold text-white">
+              <Plus className="h-4 w-4" />
+              <span>{text.connectionsNewConnection}</span>
+            </button>
+          </div>
         </div>
+
+        {backupImportFeedback && (
+          <div className={`px-4 py-2 text-center text-sm ${backupImportFeedbackType === 'success' ? (isLightMode ? 'bg-green-50 text-green-700' : 'bg-green-950/30 text-green-300') : backupImportFeedbackType === 'error' ? (isLightMode ? 'bg-red-50 text-red-600' : 'bg-red-950/30 text-red-300') : (isLightMode ? 'bg-blue-50 text-blue-600' : 'bg-blue-950/30 text-blue-300')}`}>
+            {backupImportFeedback}
+          </div>
+        )}
 
         <div className="p-4">
           {connections.length === 0 ? (

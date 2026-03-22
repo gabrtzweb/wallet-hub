@@ -2,11 +2,14 @@
 
 Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
 
-**Latest Features:**
-- Manual Wallet support (track physical cash)
-- Improved loading UI with animation and card style
-- Custom sorting logic for connections (Pluggy Automated, Manual Import, Physical Wallet)
-- Pixel-perfect UI alignment and micro-interactions
+**Latest Features (v1.1.1):**
+- **Data Backup & Restore**: Export all connections, transactions, and API credentials to JSON backup files; import backups to restore data with one click.
+- **Enhanced Theme Design**: Card and header backgrounds now use 10% opacity for both light and dark modes; improved border visibility in dark mode with subtle shadows.
+- **Refined Loading State**: Loading card now hides other page content while displaying progressive feedback; text color adapts by theme for better readability.
+- **Visual Enhancements**: Integrated noise texture overlay on app background (10% opacity) for added depth; improved dark mode edge definition with color-tinted borders and depth shadows.
+- **Manual Wallet Support**: Track physical cash and manual account balances with transaction history.
+- **Custom Connection Sorting**: Intelligent ordering (Pluggy Automated, Manual Import, Physical Wallet).
+- **Pixel-perfect UI**: Full light/dark theme support with localization for PT/EN.
 
 ## Overview
 
@@ -67,6 +70,10 @@ wallet-hub/
 			config/
 			hooks/
 			pages/
+			utils/
+				backupExport.js (Export/Import backup utilities)
+				manualConnections.js
+				pluggyCredentials.js
 			assets/
 		package.json
 	readme.md
@@ -119,7 +126,7 @@ Stops both servers and starts them again in one command.
 ### 5) BYOK Flow (Bring Your Own Key)
 
 1. Open `/connections`.
-2. Click `+ Nova conexão`.
+2. Click `+ Nova conexão` or `+ New connection`.
 3. Fill in:
 	- Pluggy Client ID
 	- Pluggy Client Secret
@@ -127,6 +134,26 @@ Stops both servers and starts them again in one command.
 4. Save credentials.
 
 The frontend stores these credentials in browser `localStorage` and injects them into backend request headers.
+
+### 6) Data Backup & Restore
+
+**Export Backup:**
+1. Navigate to `/connections` page.
+2. Click the `Export` button in the connections header.
+3. A JSON file (`wallet-hub-backup-YYYY-MM-DD.json`) downloads automatically.
+4. Store this file safely for future recovery.
+
+**Import Backup:**
+1. Navigate to `/connections` page.
+2. Click the `Import` button in the connections header.
+3. Select a previously exported JSON backup file.
+4. Confirm the import — all data (manual connections, transactions, and API credentials) will be restored.
+5. The app automatically reloads to display restored data.
+
+**Backed-up Data:**
+- Manual wallet connections and balances
+- Manual wallet transaction history
+- Pluggy API credentials (Client ID, Client Secret, Item IDs)
 
 ## Available Scripts
 
@@ -177,8 +204,21 @@ Returns consolidated arrays for:
 - Integration is read-only by design in this project.
 
 ## Roadmap
+
+**Completed (v1.1.1):**
+- ✅ Data backup and restore functionality (Export/Import JSON backups)
+- ✅ Enhanced dark mode theme with improved border visibility
+- ✅ Refined loading state UX (cards hidden during load, adaptive text colors)
+- ✅ Visual enhancements (noise texture, 10% card backgrounds, depth shadows)
+- ✅ Manual wallet connection support
+- ✅ Localized UI with full PT/EN support
+- ✅ Light and dark theme support
+
+**Upcoming:**
 - Expand manual connection support for non-Open Finance institutions
-- Further UI/UX refinements and accessibility improvements
+- Encrypted backup storage option
+- Automated backup scheduling
 - Additional data visualizations and analytics cards
 - Upcoming payments and bill tracking features
 - Automated tests for data normalization and financial totals
+- Further UI/UX refinements and accessibility improvements
