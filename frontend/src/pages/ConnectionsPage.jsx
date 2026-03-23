@@ -43,7 +43,7 @@ function ConnectionsPage({
   const [expandedManualAccountId, setExpandedManualAccountId] = useState(null)
   const [expandedPluggyAccountId, setExpandedPluggyAccountId] = useState(null)
   const [isManualTransactionFormOpen, setIsManualTransactionFormOpen] = useState(false)
-  const [manualTransactionsRefreshKey, setManualTransactionsRefreshKey] = useState(0)
+  // removed unused manualTransactionsRefreshKey
   const [manualTransactionError, setManualTransactionError] = useState('')
   const [manualTransactionForm, setManualTransactionForm] = useState({
     description: '',
@@ -137,7 +137,7 @@ function ConnectionsPage({
       const secondDate = new Date(second?.date || second?.paymentDate || 0).getTime()
       return secondDate - firstDate
     })
-  }, [expandedManualAccountId, selectedConnectionItemId, manualTransactionsRefreshKey, selectedConnection, text])
+  }, [expandedManualAccountId, selectedConnectionItemId, selectedConnection, text])
 
   const selectedPluggyAccountTransactions = useMemo(() => {
     if (!expandedPluggyAccountId) return []
@@ -520,7 +520,6 @@ function ConnectionsPage({
     }
 
     setManualConnections(getStoredManualConnections())
-    setManualTransactionsRefreshKey((current) => current + 1)
     setManualTransactionError('')
     setManualTransactionForm({ description: '', amount: '', type: 'INCOME', date: getTodayInputDate() })
     setIsManualTransactionFormOpen(false)

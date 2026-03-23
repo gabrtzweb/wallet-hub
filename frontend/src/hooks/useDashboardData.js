@@ -103,12 +103,7 @@ function useDashboardData({ language, text }) {
       setLoading(false)
     }
   }, [
-    text,
-    text.fallbackLoadError,
-    text.loadDashboardError,
-    text.partialRefreshPrefix,
-    text.partialRefreshSuffix,
-    text.unknownItem,
+    text
   ])
 
   useEffect(() => {

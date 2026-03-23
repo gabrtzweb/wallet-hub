@@ -5,7 +5,6 @@ import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 
 function AssetsPage({
   glassCardClass,
-  topCardTitleClass,
   primaryTextClass,
   secondaryTextClass,
   cardSubtleDividerClass,
