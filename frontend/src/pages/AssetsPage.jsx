@@ -277,7 +277,11 @@ function AssetsPage({
           </div>
         </div>
 
-        <div className="min-h-[240px] p-5" />
+        <div className="min-h-[80px] flex items-center p-5">
+          <span className="text-[14px] text-left text-zinc-400 dark:text-zinc-500">
+            {text.assetsBenefitsEmpty}
+          </span>
+        </div>
       </article>
     </section>
   )
