@@ -99,7 +99,9 @@ export const exportBackup = () => {
  * @param {File} file - The JSON backup file to import
  * @returns {Promise<{ success: boolean; message: string }>}
  */
-export const importBackup = (file) => {
+import { COPY } from '../config/dashboardConfig'
+
+export const importBackup = (file, language = 'pt') => {
   return new Promise((resolve) => {
     if (!file) {
       resolve({ success: false, message: 'No file selected' })
@@ -154,7 +156,9 @@ export const importBackup = (file) => {
           }
         }
 
-        resolve({ success: true, message: 'Backup imported successfully. Reloading...' })
+        // Use the language param to select the correct translation
+        const lang = COPY[language] ? language : 'pt'
+        resolve({ success: true, message: COPY[lang].connectionsImportSuccess || 'Backup imported successfully. Reloading...' })
       } catch (error) {
         console.error('Error parsing backup file:', error)
         resolve({ success: false, message: `Error parsing backup file: ${error.message}` })

@@ -412,7 +412,7 @@ function ConnectionsPage({
     const file = event.target?.files?.[0]
     if (!file) return
 
-    setBackupImportFeedback('Processing backup...')
+    setBackupImportFeedback(text.connectionsImportProcessing || 'Processing backup...')
     setBackupImportFeedbackType('loading')
 
     const result = await importBackup(file)
@@ -532,7 +532,7 @@ function ConnectionsPage({
       {isCredentialsModalOpen && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4">
             <article className={`w-full max-w-2xl rounded-xl border p-4 md:p-5 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-[#10131a]'}`}>
-              <div className="mb-6 flex items-center justify-between gap-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className={`text-lg font-semibold ${primaryTextClass}`}>
                   {connectionFlowStep === 'selection'
                     ? text.connectionsModalTitle || 'Nova conexão'
@@ -560,8 +560,8 @@ function ConnectionsPage({
                         <Cloud className="h-5 w-5" />
                       </span>
                       <span className="min-w-0">
-                        <span className={`block text-[16px] font-semibold leading-tight ${primaryTextClass}`}>{text.connectionsAutomatedTitle || 'Automated Connection (Pluggy)'}</span>
-                        <span className={`mt-1 block text-sm leading-relaxed ${secondaryTextClass}`}>{text.connectionsAutomatedSubtitle || 'Sync automatically using your API keys.'}</span>
+                        <span className={`block text-[14px] font-semibold leading-tight ${primaryTextClass}`}>{text.connectionsAutomatedTitle || 'Automated Connection (Pluggy)'}</span>
+                        <span className={`mt-1 block text-[12px] leading-relaxed ${secondaryTextClass}`}>{text.connectionsAutomatedSubtitle || 'Sync automatically using your API keys.'}</span>
                       </span>
                     </button>
 
@@ -574,8 +574,8 @@ function ConnectionsPage({
                         <FileText className="h-5 w-5" />
                       </span>
                       <span className="min-w-0">
-                        <span className={`block text-[16px] font-semibold leading-tight ${primaryTextClass}`}>{text.connectionsManualTitle || 'Manual Import (CSV)'}</span>
-                        <span className={`mt-1 block text-sm leading-relaxed ${secondaryTextClass}`}>{text.connectionsManualSubtitle || 'Upload your exported statements.'}</span>
+                        <span className={`block text-[14px] font-semibold leading-tight ${primaryTextClass}`}>{text.connectionsManualTitle || 'Manual Import (CSV)'}</span>
+                        <span className={`mt-1 block text-[12px] leading-relaxed ${secondaryTextClass}`}>{text.connectionsManualSubtitle || 'Upload your exported statements.'}</span>
                       </span>
                     </button>
 
@@ -588,8 +588,8 @@ function ConnectionsPage({
                         <Wallet className="h-5 w-5" />
                       </span>
                       <span className="min-w-0">
-                        <span className={`block text-[16px] font-semibold leading-tight ${primaryTextClass}`}>{text.connectionsPhysicalTitle || 'Physical Wallet (Cash)'}</span>
-                        <span className={`mt-1 block text-sm leading-relaxed ${secondaryTextClass}`}>{text.connectionsPhysicalSubtitle || 'Track physical cash or manual balances.'}</span>
+                        <span className={`block text-[14px] font-semibold leading-tight ${primaryTextClass}`}>{text.connectionsPhysicalTitle || 'Physical Wallet (Cash)'}</span>
+                        <span className={`mt-1 block text-[12px] leading-relaxed ${secondaryTextClass}`}>{text.connectionsPhysicalSubtitle || 'Track physical cash or manual balances.'}</span>
                       </span>
                     </button>
                   </div>
@@ -940,7 +940,7 @@ function ConnectionsPage({
                     </>
                   )}
                   <span className={secondaryTextClass}>·</span>
-                  <span className={`font-semibold ${isPhysicalWalletConnection ? 'text-amber-400/80' : 'text-emerald-400/60'}`}>
+                  <span className={`font-semibold ${isPhysicalWalletConnection ? 'text-amber-400/60' : 'text-emerald-400/60'}`}>
                     {isPhysicalWalletConnection ? (text.connectionsManualLabel || 'Manual') : (text.connectionsSyncLabel || 'Sincronizado')}
                   </span>
                 </p>
@@ -1479,7 +1479,7 @@ function ConnectionsPage({
                       <Clock3 className={`h-[12px] w-[12px] ${secondaryTextClass}`} />
                       <span className={secondaryTextClass}>{formatRelativeSync(entry)}</span>
                       <span className={secondaryTextClass}>·</span>
-                      <span className={`font-semibold ${isPhysicalWalletCard ? 'text-amber-400/80' : 'text-emerald-400/60'}`}>
+                      <span className={`font-semibold ${isPhysicalWalletCard ? 'text-amber-400/60' : 'text-emerald-400/60'}`}>
                         {isPhysicalWalletCard ? (text.connectionsManualLabel || 'Manual') : (text.connectionsSyncLabel || 'Sincronizado')}
                       </span>
                     </p>

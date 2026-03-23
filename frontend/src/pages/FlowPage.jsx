@@ -254,6 +254,23 @@ function FlowPage({
     [projectedBankTotal, projectedCreditTotal],
   )
 
+  const isPastFlowMonth = canGoToNextFlowMonth
+
+  const nextFlowMonthName = useMemo(() => {
+    const now = new Date()
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const formattedMonth = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+      month: 'long',
+    }).format(nextMonth)
+
+    return formattedMonth.charAt(0).toUpperCase() + formattedMonth.slice(1)
+  }, [language])
+
+  const projectedNextMonthLabel = useMemo(() => {
+    const template = text.flowProjectedBalanceNextMonthLabel || 'For next month ({month})'
+    return template.replace('{month}', nextFlowMonthName)
+  }, [nextFlowMonthName, text.flowProjectedBalanceNextMonthLabel])
+
   const getMetricColor = (status) => {
     switch (status) {
       case 'Good':
@@ -395,23 +412,45 @@ function FlowPage({
           </div>
           <div className="mt-2 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className={`text-[24px] font-bold ${projectedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {projectedBalance < 0 ? '-' : ''}{formatMoney(Math.abs(projectedBalance))}
-              </p>
-              <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceSubtitle}</p>
+              {isPastFlowMonth ? (
+                <>
+                  <p className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-700' : 'bg-zinc-800 text-zinc-300'}`}>
+                    {text.flowProjectedBalancePastMonthBadge || 'Month closed'}
+                  </p>
+                  <p className={`mt-2 text-[12px] ${secondaryTextClass}`}>
+                    {text.flowProjectedBalancePastMonthSubtitle || 'This month has already passed. Projected value hidden.'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className={`text-[24px] font-bold ${projectedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {projectedBalance < 0 ? '-' : ''}{formatMoney(Math.abs(projectedBalance))}
+                  </p>
+                  <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceSubtitle}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-[#1f67ff]">{projectedNextMonthLabel}</p>
+                </>
+              )}
             </div>
 
-            <div className={`w-full max-w-[210px] rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white/50' : 'border-zinc-700 bg-zinc-900/40'}`}>
-              <div className="flex items-center justify-between gap-3">
-                <p className={`text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceInBankLabel}</p>
-                <p className="text-[12px] font-semibold text-emerald-400">{formatMoney(projectedBankTotal)}</p>
+            {isPastFlowMonth ? (
+              <div className={`w-full max-w-[210px] rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white/50' : 'border-zinc-700 bg-zinc-900/40'}`}>
+                <p className={`text-center text-[12px] ${secondaryTextClass}`}>
+                  {text.flowProjectedBalancePastMonthNotice || 'Select the current month to see projected values.'}
+                </p>
               </div>
-              <div className={`my-2 border-t ${isLightMode ? 'border-zinc-300' : 'border-zinc-700'}`} />
-              <div className="flex items-center justify-between gap-3">
-                <p className={`text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceBillsLabel}</p>
-                <p className="text-[12px] font-semibold text-red-400">{formatMoney(projectedCreditTotal)}</p>
+            ) : (
+              <div className={`w-full max-w-[210px] rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white/50' : 'border-zinc-700 bg-zinc-900/40'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className={`text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceInBankLabel}</p>
+                  <p className="text-[12px] font-semibold text-emerald-400">{formatMoney(projectedBankTotal)}</p>
+                </div>
+                <div className={`my-2 border-t ${isLightMode ? 'border-zinc-300' : 'border-zinc-700'}`} />
+                <div className="flex items-center justify-between gap-3">
+                  <p className={`text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceBillsLabel}</p>
+                  <p className="text-[12px] font-semibold text-red-400">{formatMoney(projectedCreditTotal)}</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </article>
 
