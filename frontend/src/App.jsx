@@ -3,7 +3,7 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-r
 import DashboardFooter from './components/DashboardFooter'
 import DashboardHeader from './components/DashboardHeader'
 import noiseTexture from './assets/noise.png'
-import { COPY, getBankLogo } from './config/dashboardConfig'
+import { COPY } from './config/dashboardConfig'
 import useDashboardData from './hooks/useDashboardData'
 import AssetsPage from './pages/AssetsPage'
 import ConnectionsPage from './pages/ConnectionsPage'
@@ -280,7 +280,6 @@ function Dashboard() {
                       text={text}
                       bankBalanceTotal={bankBalanceTotal}
                       sortedBankAccounts={sortedBankAccounts}
-                      getBankLogo={getBankLogo}
                       formatMoney={formatMoney}
                       creditUsedTotal={creditUsedTotal}
                       creditUsage={creditUsage}
@@ -335,7 +334,6 @@ function Dashboard() {
                       flowGroupedTransactions={flowGroupedTransactions}
                       getNormalizedAmount={getNormalizedAmount}
                       accountMetadataById={accountMetadataById}
-                      getBankLogo={getBankLogo}
                       bankBalanceTotal={bankBalanceTotal}
                       categoryChartColors={categoryChartColors}
                       creditUsedTotal={creditUsedTotal}
@@ -356,7 +354,6 @@ function Dashboard() {
                       investments={investments}
                       investmentsTotal={investmentsTotal}
                       formatMoney={formatMoney}
-                      getBankLogo={getBankLogo}
                       isLightMode={isLightMode}
                     />
                   }

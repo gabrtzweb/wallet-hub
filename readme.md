@@ -2,30 +2,26 @@
 
 Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
 
-**Latest Features (v1.1.2):**
-- **Data Backup & Restore**: Export all connections, transactions, and API credentials to JSON backup files; import backups to restore data with one click.
-- **Enhanced Theme Design**: Card and header backgrounds now use 10% opacity for both light and dark modes; improved border visibility in dark mode with subtle shadows.
-- **Refined Loading State**: Loading card now hides other page content while displaying progressive feedback; text color adapts by theme for better readability.
-- **Visual Enhancements**: Integrated noise texture overlay on app background (10% opacity) for added depth; improved dark mode edge definition with color-tinted borders and depth shadows.
-- **Manual Wallet Support**: Track physical cash and manual account balances with transaction history.
-- **Custom Connection Sorting**: Intelligent ordering (Pluggy Automated, Manual Import, Physical Wallet).
-- **Pixel-perfect UI**: Full light/dark theme support with localization for PT/EN.
-- **Flow Summary Cards**: New top-row summary cards for Income, Expenses, and Future Expenses with category-based progress bars.
-- **Financial Health Score**: Dynamic 0-100 score based on spending, debt utilization, and monthly surplus, with localized metric labels/status.
-- **Projected Balance Card**: New "Projected Balance" card showing `Bank Total - Credit Bills` with a right-side breakdown (`Em conta` / `Faturas`).
-- **Flow Localization Expansion**: Added localized PT/EN copy for new Flow cards, subtitles, empty states, and Financial Health statuses.
-
 ## Overview
 
 - Consolidated financial dashboard with real account data.
 - Read-only Open Finance integration through Pluggy.
 - Dedicated pages:
-	- `/` Home (landing)
-	- `/overview` Overview
-	- `/flow` Cash Flow (Flow)
-	- `/assets` Assets
-	- `/connections` Connections
-- Localized UI (`PT`/`EN`) with dark and light themes.
+  - `/` Home (landing)
+  - `/overview` Overview
+  - `/flow` Cash Flow
+  - `/assets` Assets
+  - `/connections` Data Passport
+- Localized UI (`PT`/`EN`) with `dark` and `light` themes.
+
+## What This Version Includes
+
+- Physical wallet support for manual cash tracking (`/physical-wallet.png`).
+- Backup and restore for credentials and manual data via JSON.
+- Flow page summary cards and financial health scoring.
+- Monthly balance evolution and categorized transactions.
+- Dynamic institution logo resolution with domain mapping.
+- Local backend logo proxy endpoint to avoid browser-side logo blocking during local development.
 
 ## Pluggy Resources
 
@@ -45,6 +41,7 @@ Completed:
 - Flow page redesign with summary cards and dynamic category bars.
 - Financial Health calculation utility (`frontend/src/utils/financialHealthCalculator.js`) integrated into Flow page.
 - Projected Balance card with bank vs credit breakdown and conditional positive/negative highlighting.
+- Logo proxy pipeline (`backend/api/logo-proxy`) with frontend logo fallback handling.
 
 ## Architecture
 
@@ -57,6 +54,7 @@ Data flow:
 2. Backend queries Pluggy (accounts, investments, transactions).
 3. Backend returns consolidated payload.
 4. Frontend computes view metrics and renders cards/charts/lists.
+5. Frontend logo resolver requests `/api/logo-proxy?domain=...` for institution logos.
 
 ## Tech Stack
 
@@ -78,6 +76,7 @@ wallet-hub/
 			hooks/
 			pages/
 			utils/
+				logoResolver.js
 				backupExport.js (Export/Import backup utilities)
 				manualConnections.js
 				pluggyCredentials.js
@@ -97,8 +96,6 @@ npm run install:all
 ```
 
 ### 2) Environment
-
-
 
 No backend `.env` file is required. Pluggy credentials are provided by the user at runtime (BYOK) in the UI (`Connections` page).
 
@@ -188,6 +185,7 @@ Frontend (`frontend/package.json`):
 Main endpoint:
 
 - `GET /api/dashboard-data`
+- `GET /api/logo-proxy?domain={domain}`
 
 Required headers for Pluggy requests:
 
@@ -204,6 +202,12 @@ Returns consolidated arrays for:
 - `balanceEvolution`
 - `failedItems`
 
+Logo proxy behavior:
+
+- Proxies logo requests server-side to avoid browser restrictions on third-party logo hosts during local development.
+- Returns image response when found.
+- Returns `404` when logo is unavailable, allowing frontend fallback handling.
+
 ## Security Notes
 
 - Do not commit `.env` files.
@@ -219,3 +223,7 @@ Returns consolidated arrays for:
 - Upcoming payments and bill tracking features
 - Automated tests for data normalization and financial totals
 - Further UI/UX refinements and accessibility improvements
+
+## Version
+
+- Current app version: `Wallet Hub v1.2.0`

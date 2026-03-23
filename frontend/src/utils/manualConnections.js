@@ -1,4 +1,3 @@
-import walletLogo from '../assets/bank-wallet.png'
 
 const MANUAL_CONNECTIONS_STORAGE_KEY = 'wallet_hub_manual_connections'
 const MANUAL_WALLET_TRANSACTIONS_STORAGE_KEY = 'wallet_hub_manual_wallet_transactions'
@@ -38,7 +37,7 @@ const buildManualWalletTransaction = ({ connection, description, amount, date, t
       name: connection.walletName,
       marketingName: connection.walletName,
       itemId: connection.itemId,
-      logo: connection.logo || walletLogo,
+      logo: '/physical-wallet.png',
     },
     amount,
     description: description || text.connectionsPhysicalAddedTransaction || 'Physical money added',
@@ -82,7 +81,7 @@ export const toPhysicalWalletAccount = (connection) => ({
   connectionType: 'MANUAL_WALLET',
   createdAt: connection.createdAt,
   updatedAt: connection.updatedAt,
-  logo: connection.logo || walletLogo,
+  logo: '/physical-wallet.png',
 })
 
 export const toPhysicalWalletTransaction = (connection, text) => {

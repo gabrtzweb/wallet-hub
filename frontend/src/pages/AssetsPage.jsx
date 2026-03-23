@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowDownRight, BriefcaseBusiness, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react'
 import { getInstitutionName } from '../config/dashboardConfig'
+import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 
 function AssetsPage({
   glassCardClass,
@@ -12,7 +13,6 @@ function AssetsPage({
   investments,
   investmentsTotal,
   formatMoney,
-  getBankLogo,
   isLightMode,
 }) {
   const [expandedById, setExpandedById] = useState({})
@@ -170,7 +170,7 @@ function AssetsPage({
                     const movementAmount = getMovementAmount(investment)
                     const investedValue = getInvestedValue(investment)
                     const profitabilityLabel = getProfitabilityLabel(investment)
-                    const bankLogo = getBankLogo(investment)
+                    const bankLogo = getBankLogoUrl(investment)
 
                     return (
                       <div key={rowId} className={`border-b ${cardSubtleDividerClass}`}>
@@ -192,7 +192,15 @@ function AssetsPage({
                               <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{assetName}</p>
                               <p className={`mt-0.5 flex items-center gap-1.5 text-xs ${secondaryTextClass}`}>
                                 {bankLogo ? (
-                                  <img src={bankLogo} alt={institution} className="h-3.5 w-3.5 rounded object-contain" />
+                                  <img
+                                    src={bankLogo}
+                                    alt={institution}
+                                    className="h-3.5 w-3.5 rounded object-contain"
+                                    onError={(e) => {
+                                      const nextLogo = getBankLogoFallbackUrl(investment, e.currentTarget.src)
+                                      if (nextLogo) e.currentTarget.src = nextLogo
+                                    }}
+                                  />
                                 ) : (
                                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${isLightMode ? 'bg-zinc-400' : 'bg-zinc-500'}`} />
                                 )}

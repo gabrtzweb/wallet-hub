@@ -10,7 +10,6 @@ import {
 } from '../config/dashboardConfig'
 import { getStoredManualConnections, getStoredManualWalletTransactions, toPhysicalWalletAccount, isManualWalletConnection } from '../utils/manualConnections'
 import { getPluggyRequestHeaders } from '../utils/pluggyCredentials'
-import walletLogo from '../assets/bank-wallet.png'
 
 function useDashboardData({ language, text }) {
   const [bankAccounts, setBankAccounts] = useState([])
@@ -138,7 +137,6 @@ function useDashboardData({ language, text }) {
         marketingName: text.connectionsPhysicalConnectionLabel || 'Physical Wallet',
         balance: totalBalance,
         currency: 'BRL',
-        logo: walletLogo,
         type: 'BANK',
       }
       result = [...regularAccounts, groupedPhysicalWallet]

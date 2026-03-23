@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronUp, Clock3, CreditCard, Donut, Landmark, ReceiptText, ScrollText, TrendingUp, Wallet } from 'lucide-react'
 import { getCreditLimit, getFriendlyAccountLabel, getInstitutionName } from '../config/dashboardConfig'
+import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 
 function OverviewPage({
   glassCardClass,
@@ -28,7 +29,6 @@ function OverviewPage({
   text,
   bankBalanceTotal,
   sortedBankAccounts,
-  getBankLogo,
   formatMoney,
   creditUsedTotal,
   creditUsage,
@@ -78,11 +78,15 @@ function OverviewPage({
                 className={`flex items-center justify-between py-2.5 text-xs ${index > 0 ? `border-t ${cardSubtleDividerClass}` : ''}`}
               >
                 <span className={`flex items-center gap-2 ${isLightMode ? 'text-zinc-700' : 'text-zinc-300'}`}>
-                  {getBankLogo(account) ? (
+                  {getBankLogoUrl(account) ? (
                     <img
-                      src={getBankLogo(account)}
+                      src={getBankLogoUrl(account)}
                       alt={getInstitutionName(account)}
                       className="h-5 w-5 rounded-md"
+                      onError={(e) => {
+                        const nextLogo = getBankLogoFallbackUrl(account, e.currentTarget.src)
+                        if (nextLogo) e.currentTarget.src = nextLogo
+                      }}
                     />
                   ) : (
                     <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-800' : 'bg-zinc-700 text-[#e9f0ff]'}`}>
@@ -137,11 +141,15 @@ function OverviewPage({
                 className={`flex items-center justify-between border-b py-3 last:border-b-0 ${cardSubtleDividerClass}`}
               >
                 <div className="flex items-center gap-2">
-                  {getBankLogo(account) ? (
+                  {getBankLogoUrl(account) ? (
                     <img
-                      src={getBankLogo(account)}
+                      src={getBankLogoUrl(account)}
                       alt={getInstitutionName(account)}
                       className="h-5 w-5 rounded-md"
+                      onError={(e) => {
+                        const nextLogo = getBankLogoFallbackUrl(account, e.currentTarget.src)
+                        if (nextLogo) e.currentTarget.src = nextLogo
+                      }}
                     />
                   ) : (
                     <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-800' : 'bg-zinc-700 text-[#e9f0ff]'}`}>
@@ -405,11 +413,15 @@ function OverviewPage({
                       <div className="min-w-0">
                         <p className={`truncate ${primaryTextClass}`}>{description}</p>
                         <p className={`mt-0.5 flex items-center gap-1.5 text-xs ${secondaryTextClass}`}>
-                          {getBankLogo(accountMeta) ? (
+                          {getBankLogoUrl(accountMeta) ? (
                             <img
-                              src={getBankLogo(accountMeta)}
+                              src={getBankLogoUrl(accountMeta)}
                               alt={accountName}
                               className="h-3.5 w-3.5 shrink-0 rounded object-contain"
+                              onError={(e) => {
+                                const nextLogo = getBankLogoFallbackUrl(accountMeta, e.currentTarget.src)
+                                if (nextLogo) e.currentTarget.src = nextLogo
+                              }}
                             />
                           ) : (
                             <span className={`inline-block h-1.5 w-1.5 rounded-full ${isLightMode ? 'bg-zinc-400' : 'bg-zinc-500'}`} />

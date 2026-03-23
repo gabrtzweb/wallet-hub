@@ -192,6 +192,40 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend is running securely' });
 });
 
+// Proxy logo requests to avoid browser-side cross-origin blocking in localhost dev.
+app.get('/api/logo-proxy', async (req, res) => {
+  try {
+    const domain = String(req.query.domain || '').trim().toLowerCase();
+
+    if (!domain) {
+      return sendPrettyJson(res, 400, { error: 'Missing domain query parameter.' });
+    }
+
+    const upstreamUrl = `https://logos-api.apistemic.com/domain:${encodeURIComponent(domain)}?fallback=404`;
+    const upstreamResponse = await fetch(upstreamUrl, {
+      headers: {
+        'User-Agent': 'wallet-hub-local-dev/1.0 (contact: local-dev)',
+      },
+    });
+
+    if (!upstreamResponse.ok) {
+      // Return 404 to trigger frontend img onError fallback behavior.
+      return res.status(404).end();
+    }
+
+    const contentType = upstreamResponse.headers.get('content-type') || 'image/webp';
+    const cacheControl = upstreamResponse.headers.get('cache-control') || 'public, max-age=86400';
+    const imageBuffer = Buffer.from(await upstreamResponse.arrayBuffer());
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', cacheControl);
+    return res.status(200).send(imageBuffer);
+  } catch (error) {
+    console.error('Logo proxy error:', error?.message || error);
+    return res.status(404).end();
+  }
+});
+
 // Debug endpoint to verify Pluggy credentials and list available items
 app.get('/api/debug/pluggy', withPluggyContext({ requireItemIds: false }), async (req, res) => {
   try {

@@ -1,8 +1,5 @@
-import interLogo from '../assets/bank-inter.webp'
-import nubankLogo from '../assets/bank-nubank.webp'
-
 export const API_BASE = 'http://localhost:3000/api'
-export const APP_VERSION = 'Wallet Hub v1.1.1'
+export const APP_VERSION = 'Wallet Hub v1.2.0'
 export const DEV_SIGNATURE = 'Flamma Digital'
 
 export const DASHBOARD_ITEMS = {
@@ -13,11 +10,9 @@ export const DASHBOARD_ITEMS = {
 export const BANK_BRANDING = {
   '115ae3ff-be4b-4330-8278-7de1d99e3a7b': {
     name: 'Inter',
-    logo: interLogo,
   },
   '481ff23b-9bf0-4618-8c94-f046a27fbbc9': {
     name: 'Nubank',
-    logo: nubankLogo,
   },
 }
 

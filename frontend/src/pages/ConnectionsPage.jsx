@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef } from 'react'
 import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
-import walletLogo from '../assets/bank-wallet.png'
-import { getBankLogo, getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
+import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
+import { getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
 import { exportBackup, importBackup } from '../utils/backupExport'
 import { clearStoredPluggyCredentials, getPluggyCredentialsDraft, removeStoredPluggyItemId, savePluggyCredentials } from '../utils/pluggyCredentials'
 import {
@@ -73,7 +73,6 @@ function ConnectionsPage({
       marketingName: text.connectionsPhysicalConnectionLabel || 'Physical Wallet',
       balance: totalBalance,
       currency: 'BRL',
-      logo: walletLogo,
       createdAt: manualConnections.length > 0 ? manualConnections[0].createdAt : new Date().toISOString(),
       updatedAt: manualConnections.length > 0 ? manualConnections[manualConnections.length - 1].updatedAt : new Date().toISOString(),
     }
@@ -393,7 +392,6 @@ function ConnectionsPage({
       marketingName: walletName,
       balance: parsedBalance,
       currency: 'BRL',
-      logo: walletLogo,
       createdAt: nowIso,
       updatedAt: nowIso,
     }
@@ -793,15 +791,19 @@ function ConnectionsPage({
 
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              {getBankLogo(selectedConnection) ? (
+              {getBankLogoUrl(selectedConnection) ? (
                 <img
-                  src={getBankLogo(selectedConnection)}
+                  src={getBankLogoUrl(selectedConnection)}
                   alt={getInstitutionName(selectedConnection)}
                   className="h-10 w-10 rounded-lg object-contain"
+                  onError={(e) => {
+                    const nextLogo = getBankLogoFallbackUrl(selectedConnection, e.currentTarget.src)
+                    if (nextLogo) e.currentTarget.src = nextLogo
+                  }}
                 />
               ) : isPhysicalWalletConnection ? (
                 <img
-                  src={walletLogo}
+                  src="/physical-wallet.png"
                   alt={selectedConnection?.walletName || text.connectionsPhysicalTitle || 'Physical Wallet'}
                   className="h-10 w-10 rounded-lg object-contain"
                 />
@@ -1329,17 +1331,25 @@ function ConnectionsPage({
             <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               {connections.map((entry) => {
                 const institution = getInstitutionName(entry)
-                const logo = getBankLogo(entry)
+                const logo = getBankLogoUrl(entry)
                 const isPhysicalWalletCard = isManualWalletConnection(entry)
 
                 return (
                   <article key={entry.itemId} className={`card-interactive w-full rounded-xl border bg-transparent p-4 hover:-translate-y-0.5 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
                     <div className="mb-4 flex items-start justify-between">
                       {logo ? (
-                        <img src={logo} alt={institution} className="h-10 w-10 rounded-lg object-contain" />
+                        <img
+                          src={logo}
+                          alt={institution}
+                          className="h-10 w-10 rounded-lg object-contain"
+                          onError={(e) => {
+                            const nextLogo = getBankLogoFallbackUrl(entry, e.currentTarget.src)
+                            if (nextLogo) e.currentTarget.src = nextLogo
+                          }}
+                        />
                       ) : isPhysicalWalletCard ? (
                         <img
-                          src={walletLogo}
+                          src="/physical-wallet.png"
                           alt={entry?.walletName || text.connectionsPhysicalTitle || 'Physical Wallet'}
                           className="h-10 w-10 rounded-lg object-contain"
                         />

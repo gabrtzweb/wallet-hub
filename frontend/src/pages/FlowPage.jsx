@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, BadgeDollarSign, ChartNoAxesCombined, ChevronDown, ChevronLeft, ChevronRight, Clock3, HeartPulse, Search, Sparkles } from 'lucide-react'
 import { getFriendlyAccountLabel } from '../config/dashboardConfig'
+import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 import { calculateFinancialHealth } from '../utils/financialHealthCalculator'
 
 function FlowPage({
@@ -22,7 +23,6 @@ function FlowPage({
   flowGroupedTransactions,
   getNormalizedAmount,
   accountMetadataById,
-  getBankLogo,
   bankBalanceTotal,
   categoryChartColors,
   creditUsedTotal,
@@ -587,11 +587,15 @@ function FlowPage({
                       <div className="min-w-0">
                         <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
                         <p className={`mt-0.5 flex items-center gap-1.5 text-xs ${secondaryTextClass}`}>
-                          {getBankLogo(accountMeta) ? (
+                          {getBankLogoUrl(accountMeta) ? (
                             <img
-                              src={getBankLogo(accountMeta)}
+                              src={getBankLogoUrl(accountMeta)}
                               alt={accountName}
                               className="h-3.5 w-3.5 shrink-0 rounded object-contain"
+                              onError={(e) => {
+                                const nextLogo = getBankLogoFallbackUrl(accountMeta, e.currentTarget.src)
+                                if (nextLogo) e.currentTarget.src = nextLogo
+                              }}
                             />
                           ) : (
                             <span className={`inline-block h-1.5 w-1.5 rounded-full ${isLightMode ? 'bg-zinc-400' : 'bg-zinc-500'}`} />
