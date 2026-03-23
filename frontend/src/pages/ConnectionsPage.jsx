@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef } from 'react'
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CirclePlus, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 import { getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
 import { exportBackup, importBackup } from '../utils/backupExport'
@@ -35,7 +35,7 @@ function ConnectionsPage({
   const [connectionFlowStep, setConnectionFlowStep] = useState('selection')
   const [credentialsForm, setCredentialsForm] = useState(getPluggyCredentialsDraft())
   const [manualConnections, setManualConnections] = useState(getStoredManualConnections)
-  const [csvImportForm, setCsvImportForm] = useState({ institutionName: '', accountName: '' })
+  const [csvImportForm, setCsvImportForm] = useState({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
   const [physicalWalletForm, setPhysicalWalletForm] = useState({ walletName: '', currentBalance: '' })
   const [credentialsError, setCredentialsError] = useState('')
   const [showClientSecret, setShowClientSecret] = useState(false)
@@ -54,6 +54,7 @@ function ConnectionsPage({
   const [backupImportFeedback, setBackupImportFeedback] = useState('')
   const [backupImportFeedbackType, setBackupImportFeedbackType] = useState('')
   const fileInputRef = useRef(null)
+  const manualCsvFileInputRef = useRef(null)
 
   const manualWalletAccounts = useMemo(
     () => manualConnections.map((entry) => toPhysicalWalletAccount(entry)),
@@ -252,7 +253,7 @@ function ConnectionsPage({
 
   const openCredentialsModal = () => {
     setCredentialsForm(getPluggyCredentialsDraft())
-    setCsvImportForm({ institutionName: '', accountName: '' })
+    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
     setPhysicalWalletForm({ walletName: '', currentBalance: '' })
     setCredentialsError('')
     setShowClientSecret(false)
@@ -263,7 +264,7 @@ function ConnectionsPage({
 
   const closeCredentialsModal = () => {
     setIsCredentialsModalOpen(false)
-    setCsvImportForm({ institutionName: '', accountName: '' })
+    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
     setPhysicalWalletForm({ walletName: '', currentBalance: '' })
     setCredentialsError('')
     setShowClientSecret(false)
@@ -441,6 +442,54 @@ function ConnectionsPage({
 
   const triggerFileInput = () => {
     fileInputRef.current?.click()
+  }
+
+  const triggerManualCsvFileInput = () => {
+    manualCsvFileInputRef.current?.click()
+  }
+
+  const createManualCsvAccountPayload = (file) => {
+    const nowIso = new Date().toISOString()
+
+    return {
+      connectionType: 'MANUAL_IMPORT',
+      institutionName: String(csvImportForm.institutionName || '').trim(),
+      accountName: String(csvImportForm.accountName || '').trim(),
+      accountCategory: csvImportForm.accountCategory || 'Benefícios',
+      fileName: file?.name || '',
+      fileSize: Number(file?.size || 0),
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }
+  }
+
+  const handleManualCsvFileSelected = (event) => {
+    const file = event.target?.files?.[0]
+    const institutionName = String(csvImportForm.institutionName || '').trim()
+    const accountName = String(csvImportForm.accountName || '').trim()
+    const accountCategory = String(csvImportForm.accountCategory || '').trim()
+
+    if (!institutionName || !accountName || !accountCategory) {
+      setCredentialsError(text.connectionsCsvValidationError || 'Fill Institution Name, Account Name and Account Category.')
+      if (manualCsvFileInputRef.current) {
+        manualCsvFileInputRef.current.value = ''
+      }
+      return
+    }
+
+    if (!file) {
+      setCredentialsError(text.connectionsCsvFileRequiredError || 'Select a CSV file to continue.')
+      return
+    }
+
+    const payload = createManualCsvAccountPayload(file)
+    localStorage.setItem('wallet_hub_manual_csv_pending_payload', JSON.stringify(payload))
+
+    setCredentialsError('')
+
+    if (manualCsvFileInputRef.current) {
+      manualCsvFileInputRef.current.value = ''
+    }
   }
 
   const handleManualTransactionSubmit = async (event) => {
@@ -678,8 +727,12 @@ function ConnectionsPage({
                       <span className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsCsvInstitutionLabel || 'Institution Name'}</span>
                       <input
                         type="text"
+                        required
                         value={csvImportForm.institutionName}
-                        onChange={(event) => setCsvImportForm((current) => ({ ...current, institutionName: event.target.value }))}
+                        onChange={(event) => {
+                          setCsvImportForm((current) => ({ ...current, institutionName: event.target.value }))
+                          if (credentialsError) setCredentialsError('')
+                        }}
                         placeholder={text.connectionsCsvInstitutionPlaceholder || 'e.g. Inter, Nubank'}
                         className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
                       />
@@ -688,12 +741,57 @@ function ConnectionsPage({
                       <span className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsCsvAccountLabel || 'Account Name'}</span>
                       <input
                         type="text"
+                        required
                         value={csvImportForm.accountName}
-                        onChange={(event) => setCsvImportForm((current) => ({ ...current, accountName: event.target.value }))}
+                        onChange={(event) => {
+                          setCsvImportForm((current) => ({ ...current, accountName: event.target.value }))
+                          if (credentialsError) setCredentialsError('')
+                        }}
                         placeholder={text.connectionsCsvAccountPlaceholder || 'e.g. Main Checking'}
                         className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
                       />
                     </label>
+                    <div className="block">
+                      <span className={`mb-2 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsCsvAccountCategoryLabel || 'Account Category'}</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCsvImportForm((current) => ({ ...current, accountCategory: 'Financeira' }))
+                            if (credentialsError) setCredentialsError('')
+                          }}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                            csvImportForm.accountCategory === 'Financeira'
+                              ? isLightMode
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-blue-400 bg-blue-900/30 text-blue-300'
+                              : isLightMode
+                                ? 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
+                                : 'border-zinc-700 bg-zinc-900/40 text-zinc-300 hover:border-zinc-600'
+                          }`}
+                        >
+                          {text.connectionsCsvCategoryFinanceira || 'Financeira'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCsvImportForm((current) => ({ ...current, accountCategory: 'Benefícios' }))
+                            if (credentialsError) setCredentialsError('')
+                          }}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                            csvImportForm.accountCategory === 'Benefícios'
+                              ? isLightMode
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-blue-400 bg-blue-900/30 text-blue-300'
+                              : isLightMode
+                                ? 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
+                                : 'border-zinc-700 bg-zinc-900/40 text-zinc-300 hover:border-zinc-600'
+                          }`}
+                        >
+                          {text.connectionsCsvCategoryBeneficios || 'Benefícios'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className={`rounded-lg border-2 border-dashed p-8 text-center ${isLightMode ? 'border-zinc-300 bg-zinc-50' : 'border-zinc-700 bg-zinc-900/30'}`}>
@@ -702,11 +800,21 @@ function ConnectionsPage({
                     <p className={`mb-4 text-sm ${secondaryTextClass}`}>{text.connectionsManualOrUpload || 'or'}</p>
                     <button
                       type="button"
+                      onClick={triggerManualCsvFileInput}
                       className="inline-flex h-9 items-center rounded-lg bg-[#1f67ff] px-4 text-sm font-semibold text-white"
                     >
                       {text.connectionsManualBrowseFiles || 'Browse files'}
                     </button>
+                    <input
+                      ref={manualCsvFileInputRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handleManualCsvFileSelected}
+                      className="hidden"
+                    />
                   </div>
+
+                  {credentialsError && <p className="text-sm text-rose-400">{credentialsError}</p>}
                 </div>
               )}
 
@@ -1310,9 +1418,9 @@ function ConnectionsPage({
               type="button"
               onClick={openCredentialsModal}
               aria-label={text.connectionsNewConnection}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f67ff] text-xs font-semibold text-white md:w-auto md:gap-1.5 md:px-3"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 md:w-auto md:gap-1.5 md:px-3"
             >
-              <Plus className="h-4 w-4" />
+              <CirclePlus className="h-4 w-4" />
               <span className="hidden md:inline">{text.connectionsNewConnection}</span>
             </button>
           </div>

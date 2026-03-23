@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownRight, BriefcaseBusiness, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react'
+import { ArrowDownRight, BriefcaseBusiness, ChevronDown, ChevronUp, Ticket, TrendingUp } from 'lucide-react'
 import { getInstitutionName } from '../config/dashboardConfig'
 import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 
@@ -266,6 +266,19 @@ function AssetsPage({
             })}
           </div>
         )}
+      </article>
+
+      <article className={`${glassCardClass} w-full overflow-hidden`}>
+        <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
+          <div className="flex items-center gap-2 -ml-1">
+            <Ticket className="h-[18px] w-[18px] text-[#1f67ff]" />
+            <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
+              {text.assetsBenefitsLabel || 'Beneficios'}
+            </h3>
+          </div>
+        </div>
+
+        <div className="min-h-[240px] p-5" />
       </article>
     </section>
   )
