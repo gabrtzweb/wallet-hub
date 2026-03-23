@@ -2,7 +2,7 @@
 
 Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
 
-**Latest Features (v1.1.1):**
+**Latest Features (v1.1.2):**
 - **Data Backup & Restore**: Export all connections, transactions, and API credentials to JSON backup files; import backups to restore data with one click.
 - **Enhanced Theme Design**: Card and header backgrounds now use 10% opacity for both light and dark modes; improved border visibility in dark mode with subtle shadows.
 - **Refined Loading State**: Loading card now hides other page content while displaying progressive feedback; text color adapts by theme for better readability.
@@ -10,6 +10,10 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
 - **Manual Wallet Support**: Track physical cash and manual account balances with transaction history.
 - **Custom Connection Sorting**: Intelligent ordering (Pluggy Automated, Manual Import, Physical Wallet).
 - **Pixel-perfect UI**: Full light/dark theme support with localization for PT/EN.
+- **Flow Summary Cards**: New top-row summary cards for Income, Expenses, and Future Expenses with category-based progress bars.
+- **Financial Health Score**: Dynamic 0-100 score based on spending, debt utilization, and monthly surplus, with localized metric labels/status.
+- **Projected Balance Card**: New "Projected Balance" card showing `Bank Total - Credit Bills` with a right-side breakdown (`Em conta` / `Faturas`).
+- **Flow Localization Expansion**: Added localized PT/EN copy for new Flow cards, subtitles, empty states, and Financial Health statuses.
 
 ## Overview
 
@@ -38,6 +42,9 @@ Completed:
 - Monthly flow normalization aligned with Pluggy behavior.
 - Responsive header improvements (mobile hamburger, icon-only controls on mobile).
 - Mobile and desktop footer refinements.
+- Flow page redesign with summary cards and dynamic category bars.
+- Financial Health calculation utility (`frontend/src/utils/financialHealthCalculator.js`) integrated into Flow page.
+- Projected Balance card with bank vs credit breakdown and conditional positive/negative highlighting.
 
 ## Architecture
 
@@ -205,16 +212,6 @@ Returns consolidated arrays for:
 
 ## Roadmap
 
-**Completed (v1.1.1):**
-- ✅ Data backup and restore functionality (Export/Import JSON backups)
-- ✅ Enhanced dark mode theme with improved border visibility
-- ✅ Refined loading state UX (cards hidden during load, adaptive text colors)
-- ✅ Visual enhancements (noise texture, 10% card backgrounds, depth shadows)
-- ✅ Manual wallet connection support
-- ✅ Localized UI with full PT/EN support
-- ✅ Light and dark theme support
-
-**Upcoming:**
 - Expand manual connection support for non-Open Finance institutions
 - Encrypted backup storage option
 - Automated backup scheduling

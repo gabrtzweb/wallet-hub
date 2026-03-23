@@ -145,8 +145,8 @@ function Dashboard() {
   const investmentBarFillClass = 'bg-[#60a5fa]'
 
   const glassCardClass = isLightMode
-    ? 'rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
-    : 'rounded-xl border border-[rgba(233,240,255,0.20)] bg-[rgba(8,10,15,0.10)] shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-[8px]'
+    ? 'card-interactive rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px] hover:-translate-y-0.5'
+    : 'card-interactive rounded-xl border border-[rgba(233,240,255,0.20)] bg-[rgba(8,10,15,0.10)] backdrop-blur-[8px] hover:-translate-y-0.5'
 
   const headerGlassClass = isLightMode
     ? 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
@@ -191,10 +191,13 @@ function Dashboard() {
   const showPageHeader = !isHomeView && !shouldLockDashboardView
 
   return (
-    <main className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#080a0f]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}>
+    <main
+      className={`relative min-h-screen overflow-hidden ${isLightMode ? 'bg-[#E9F0FF] text-[#080a0f]' : 'bg-[#080A0F] text-[#e9f0ff]'}`}
+      style={{ '--background-50': isLightMode ? 'rgba(233,240,255,0.5)' : 'rgba(8,10,15,0.5)' }}
+    >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-repeat opacity-10"
+        className="pointer-events-none absolute inset-0 z-0 bg-repeat opacity-5"
         style={{ backgroundImage: `url(${noiseTexture})` }}
       />
       <DashboardHeader
@@ -334,6 +337,9 @@ function Dashboard() {
                       accountMetadataById={accountMetadataById}
                       getBankLogo={getBankLogo}
                       bankBalanceTotal={bankBalanceTotal}
+                      categoryChartColors={categoryChartColors}
+                      creditUsedTotal={creditUsedTotal}
+                      creditLimitTotal={creditLimitTotal}
                     />
                   }
                 />

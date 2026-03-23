@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Wallet, Search } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, BadgeDollarSign, ChartNoAxesCombined, ChevronDown, ChevronLeft, ChevronRight, Clock3, HeartPulse, Search, Sparkles } from 'lucide-react'
 import { getFriendlyAccountLabel } from '../config/dashboardConfig'
+import { calculateFinancialHealth } from '../utils/financialHealthCalculator'
 
 function FlowPage({
   glassCardClass,
@@ -23,6 +24,9 @@ function FlowPage({
   accountMetadataById,
   getBankLogo,
   bankBalanceTotal,
+  categoryChartColors,
+  creditUsedTotal,
+  creditLimitTotal,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
@@ -138,15 +142,318 @@ function FlowPage({
     return text.balanceDifferenceLabel || text.balanceLabel
   }, [activeFilter, text.balanceDifferenceLabel, text.balanceExpenseLabel, text.balanceIncomeLabel, text.balanceLabel])
 
+  const allMonthEntries = useMemo(
+    () => flowGroupedTransactions.flatMap((group) => group.entries),
+    [flowGroupedTransactions],
+  )
+
+  const expensesByCategory = useMemo(() => {
+    const totals = new Map()
+
+    allMonthEntries.forEach((transaction) => {
+      const normalizedAmount = getNormalizedAmount(transaction)
+      if (normalizedAmount >= 0) return
+
+      const category = String(transaction?.category || text.uncategorized)
+      totals.set(category, (totals.get(category) || 0) + Math.abs(normalizedAmount))
+    })
+
+    return Array.from(totals.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [allMonthEntries, getNormalizedAmount, text.uncategorized])
+
+  const incomeByCategory = useMemo(() => {
+    const totals = new Map()
+
+    allMonthEntries.forEach((transaction) => {
+      const normalizedAmount = getNormalizedAmount(transaction)
+      if (normalizedAmount <= 0) return
+
+      const category = String(transaction?.category || text.uncategorized)
+      totals.set(category, (totals.get(category) || 0) + normalizedAmount)
+    })
+
+    return Array.from(totals.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [allMonthEntries, getNormalizedAmount, text.uncategorized])
+
+  const pendingExpensesByCategory = useMemo(() => {
+    const totals = new Map()
+
+    allMonthEntries.forEach((transaction) => {
+      const normalizedAmount = getNormalizedAmount(transaction)
+      if (normalizedAmount >= 0) return
+
+      const accountId = transaction?.accountId || transaction?.account?.id || null
+      const accountMeta = accountMetadataById.get(accountId)
+      const accountType = accountMeta?.type || transaction?.account?.type || 'BANK'
+      if (accountType !== 'CREDIT') return
+
+      const category = String(transaction?.category || text.uncategorized)
+      totals.set(category, (totals.get(category) || 0) + Math.abs(normalizedAmount))
+    })
+
+    return Array.from(totals.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [accountMetadataById, allMonthEntries, getNormalizedAmount, text.uncategorized])
+
+  const totalMonthExpenses = useMemo(
+    () => expensesByCategory.reduce((sum, item) => sum + item.amount, 0),
+    [expensesByCategory],
+  )
+
+  const totalMonthIncome = useMemo(
+    () => incomeByCategory.reduce((sum, item) => sum + item.amount, 0),
+    [incomeByCategory],
+  )
+
+  const totalPendingExpenses = useMemo(
+    () => pendingExpensesByCategory.reduce((sum, item) => sum + item.amount, 0),
+    [pendingExpensesByCategory],
+  )
+
+  const topExpenseCategories = useMemo(
+    () => expensesByCategory.slice(0, 6),
+    [expensesByCategory],
+  )
+
+  const topIncomeCategories = useMemo(
+    () => incomeByCategory.slice(0, 6),
+    [incomeByCategory],
+  )
+
+  const topPendingCategories = useMemo(
+    () => pendingExpensesByCategory.slice(0, 6),
+    [pendingExpensesByCategory],
+  )
+
+  const maxExpenseCategoryValue = topExpenseCategories[0]?.amount || 1
+  const maxIncomeCategoryValue = topIncomeCategories[0]?.amount || 1
+  const maxPendingCategoryValue = topPendingCategories[0]?.amount || 1
+
+  const financialHealth = useMemo(
+    () => calculateFinancialHealth(monthlyIncome, monthlyExpenses, creditUsedTotal || 0, creditLimitTotal || 0),
+    [monthlyIncome, monthlyExpenses, creditUsedTotal, creditLimitTotal],
+  )
+
+  const projectedBankTotal = useMemo(
+    () => Number(bankBalanceTotal) || 0,
+    [bankBalanceTotal],
+  )
+
+  const projectedCreditTotal = useMemo(
+    () => Number(creditUsedTotal) || 0,
+    [creditUsedTotal],
+  )
+
+  const projectedBalance = useMemo(
+    () => projectedBankTotal - projectedCreditTotal,
+    [projectedBankTotal, projectedCreditTotal],
+  )
+
+  const getMetricColor = (status) => {
+    switch (status) {
+      case 'Good':
+      case 'Low':
+        return '#22c55e'
+      case 'Fair':
+      case 'Watch':
+      case 'Medium':
+        return '#f59e0b'
+      case 'Poor':
+      case 'Danger':
+      case 'High':
+        return 'rgb(248 113 113 / var(--tw-text-opacity, 1))'
+      default:
+        return '#999'
+    }
+  }
+
+  // Map status to localized label
+  const getMetricLabel = (status) => {
+    switch (status) {
+      case 'Good': return text.fhStatusGood
+      case 'Fair': return text.fhStatusFair
+      case 'Poor': return text.fhStatusPoor
+      case 'Low': return text.fhStatusLow
+      case 'Medium': return text.fhStatusMedium
+      case 'High': return text.fhStatusHigh
+      case 'Watch': return text.fhStatusWatch
+      case 'Danger': return text.fhStatusDanger
+      default: return status
+    }
+  }
+
   return (
-    <section className={`${glassCardClass} overflow-hidden`}>
-      <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
-        <div className="flex items-center gap-2">
-          <Wallet className="h-[18px] w-[18px] text-[#1f67ff]" />
-          <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.expensesLabel}</h3>
-        </div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <article className={`${glassCardClass} p-4`}>
+          <div className="flex items-center gap-2">
+            <BadgeDollarSign className="h-[18px] w-[18px] text-[#1f67ff]" />
+            <p className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.flowIncomeTitle}</p>
+          </div>
+          <p className={`mt-2 text-[24px] font-bold text-[#22c55e]`}>{formatMoney(totalMonthIncome)}</p>
+          <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowIncomeSubtitle}</p>
+          <div className="mt-4 space-y-2">
+            {topIncomeCategories.length === 0 ? (
+              <p className={`text-sm ${secondaryTextClass}`}>{text.flowNoIncome}</p>
+            ) : (
+              topIncomeCategories.map((item, index) => (
+                <div key={item.category}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className={`truncate text-[12px] ${primaryTextClass}`}>{item.category}</p>
+                    <p className={`shrink-0 text-[12px] font-semibold ${primaryTextClass}`}>{formatMoney(item.amount)}</p>
+                  </div>
+                  <div className={`h-1.5 rounded-full ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-800'}`}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.max((item.amount / maxIncomeCategoryValue) * 100, 8)}%`,
+                        backgroundColor: categoryChartColors && categoryChartColors.length > 0 ? categoryChartColors[index % categoryChartColors.length] : '#f43f5e',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+
+        <article className={`${glassCardClass} p-4`}>
+          <div className="flex items-center gap-2">
+            <BadgeDollarSign className="h-[18px] w-[18px] text-[#1f67ff]" />
+            <p className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.flowExpensesTitle}</p>
+          </div>
+          <p className="mt-2 text-[24px] font-bold text-red-400">{formatMoney(totalMonthExpenses)}</p>
+          <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowExpensesSubtitle}</p>
+          <div className="mt-4 space-y-2">
+            {topExpenseCategories.length === 0 ? (
+              <p className={`text-sm ${secondaryTextClass}`}>{text.flowNoExpenses}</p>
+            ) : (
+              topExpenseCategories.map((item, index) => (
+                <div key={item.category}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className={`truncate text-[12px] ${primaryTextClass}`}>{item.category}</p>
+                    <p className={`shrink-0 text-[12px] font-semibold ${primaryTextClass}`}>{formatMoney(item.amount)}</p>
+                  </div>
+                  <div className={`h-1.5 rounded-full ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-800'}`}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.max((item.amount / maxExpenseCategoryValue) * 100, 8)}%`,
+                        backgroundColor: categoryChartColors && categoryChartColors.length > 0 ? categoryChartColors[index % categoryChartColors.length] : '#e9d5ff',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+
+        <article className={`${glassCardClass} p-4`}>
+          <div className="flex items-center gap-2">
+            <Clock3 className="h-[18px] w-[18px] text-[#1f67ff]" />
+            <p className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.flowPendingTitle}</p>
+          </div>
+          <p className={`mt-2 text-[24px] font-bold text-[#fde047]`}>{formatMoney(totalPendingExpenses)}</p>
+          <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowPendingSubtitle}</p>
+          <div className="mt-4 space-y-2">
+            {topPendingCategories.length === 0 ? (
+              <p className={`text-sm ${secondaryTextClass}`}>{text.flowNoPending}</p>
+            ) : (
+              topPendingCategories.map((item, index) => (
+                <div key={item.category}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className={`truncate text-[12px] ${primaryTextClass}`}>{item.category}</p>
+                    <p className={`shrink-0 text-[12px] font-semibold ${primaryTextClass}`}>{formatMoney(item.amount)}</p>
+                  </div>
+                  <div className={`h-1.5 rounded-full ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-800'}`}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.max((item.amount / maxPendingCategoryValue) * 100, 8)}%`,
+                        backgroundColor: categoryChartColors && categoryChartColors.length > 0 ? categoryChartColors[index % categoryChartColors.length] : '#e9d5ff',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <article className={`${glassCardClass} p-4`}>
+          <div className="flex items-center gap-2">
+            <ChartNoAxesCombined className="h-[18px] w-[18px] text-[#1f67ff]" />
+            <p className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.flowProjectedBalanceTitle}</p>
+          </div>
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className={`text-[24px] font-bold ${projectedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {projectedBalance < 0 ? '-' : ''}{formatMoney(Math.abs(projectedBalance))}
+              </p>
+              <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceSubtitle}</p>
+            </div>
+
+            <div className={`w-full max-w-[210px] rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white/50' : 'border-zinc-700 bg-zinc-900/40'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <p className={`text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceInBankLabel}</p>
+                <p className="text-[12px] font-semibold text-emerald-400">{formatMoney(projectedBankTotal)}</p>
+              </div>
+              <div className={`my-2 border-t ${isLightMode ? 'border-zinc-300' : 'border-zinc-700'}`} />
+              <div className="flex items-center justify-between gap-3">
+                <p className={`text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceBillsLabel}</p>
+                <p className="text-[12px] font-semibold text-red-400">{formatMoney(projectedCreditTotal)}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article className={`${glassCardClass} p-4`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <HeartPulse className="h-[18px] w-[18px] text-[#1f67ff]" />
+                <p className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.flowFinancialHealthTitle}</p>
+              </div>
+              <p className={`mt-2 text-sm ${secondaryTextClass}`}>{text.flowFinancialHealthSubtitle}</p>
+            </div>
+            <div className={`relative h-16 w-16 rounded-full ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-800'}`}>
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: `conic-gradient(${financialHealth.color} 0deg ${(financialHealth.overallScore / 100) * 360}deg, ${isLightMode ? '#f0f0f0' : '#2a2a2a'} ${(financialHealth.overallScore / 100) * 360}deg 360deg)`,
+                }}
+              />
+              <div className={`absolute inset-[8px] rounded-full ${isLightMode ? 'bg-[#e9f0ff]' : 'bg-[#080A0F]'}`} />
+              <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold" style={{ color: financialHealth.color }}>{financialHealth.overallScore}</span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className={`rounded-lg px-2 py-2 ${isLightMode ? 'bg-zinc-100' : 'bg-zinc-900/50'}`}>
+              <p className={`text-[11px] ${secondaryTextClass}`}>{text.flowFinancialHealthSavings}</p>
+              <p className="text-sm font-semibold" style={{ color: getMetricColor(financialHealth.savings.status) }}>{getMetricLabel(financialHealth.savings.status)}</p>
+            </div>
+            <div className={`rounded-lg px-2 py-2 ${isLightMode ? 'bg-zinc-100' : 'bg-zinc-900/50'}`}>
+              <p className={`text-[11px] ${secondaryTextClass}`}>{text.flowFinancialHealthDebt}</p>
+              <p className="text-sm font-semibold" style={{ color: getMetricColor(financialHealth.debt.status) }}>{getMetricLabel(financialHealth.debt.status)}</p>
+            </div>
+            <div className={`rounded-lg px-2 py-2 ${isLightMode ? 'bg-zinc-100' : 'bg-zinc-900/50'}`}>
+              <p className={`text-[11px] ${secondaryTextClass}`}>{text.flowFinancialHealthSpending}</p>
+              <p className="text-sm font-semibold" style={{ color: getMetricColor(financialHealth.spending.status) }}>{getMetricLabel(financialHealth.spending.status)}</p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <section className={`${glassCardClass} overflow-hidden`}>
       <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-5 ${cardSubtleDividerClass}`}>
         <div className="flex items-center gap-3">
           <button
@@ -321,6 +628,7 @@ function FlowPage({
         </div>
       </div>
     </section>
+    </div>
   )
 }
 

@@ -1283,18 +1283,35 @@ function ConnectionsPage({
           </div>
 
           <div className="flex items-center gap-2">
-            <button type="button" onClick={exportBackup} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-500/50 bg-blue-500/10 px-3 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20" title="Download backup of your connections and data">
+            <button
+              type="button"
+              onClick={exportBackup}
+              aria-label={text.connectionsExportBackup || 'Export'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/50 bg-blue-500/10 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 md:w-auto md:gap-1.5 md:px-3"
+              title="Download backup of your connections and data"
+            >
               <Download className="h-4 w-4" />
-              <span>{text.connectionsExportBackup || 'Export'}</span>
+              <span className="hidden md:inline">{text.connectionsExportBackup || 'Export'}</span>
             </button>
-            <button type="button" onClick={triggerFileInput} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-green-500/50 bg-green-500/10 px-3 text-xs font-semibold text-green-400 transition hover:bg-green-500/20" title="Restore backup from a JSON file">
+            <button
+              type="button"
+              onClick={triggerFileInput}
+              aria-label={text.connectionsImportBackup || 'Import'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-green-500/50 bg-green-500/10 text-xs font-semibold text-green-400 transition hover:bg-green-500/20 md:w-auto md:gap-1.5 md:px-3"
+              title="Restore backup from a JSON file"
+            >
               <Upload className="h-4 w-4" />
-              <span>{text.connectionsImportBackup || 'Import'}</span>
+              <span className="hidden md:inline">{text.connectionsImportBackup || 'Import'}</span>
             </button>
             <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
-            <button type="button" onClick={openCredentialsModal} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1f67ff] px-3 text-xs font-semibold text-white">
+            <button
+              type="button"
+              onClick={openCredentialsModal}
+              aria-label={text.connectionsNewConnection}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f67ff] text-xs font-semibold text-white md:w-auto md:gap-1.5 md:px-3"
+            >
               <Plus className="h-4 w-4" />
-              <span>{text.connectionsNewConnection}</span>
+              <span className="hidden md:inline">{text.connectionsNewConnection}</span>
             </button>
           </div>
         </div>
@@ -1316,7 +1333,7 @@ function ConnectionsPage({
                 const isPhysicalWalletCard = isManualWalletConnection(entry)
 
                 return (
-                  <article key={entry.itemId} className={`w-full rounded-xl border p-4 ${isLightMode ? 'border-zinc-300/60 bg-transparent' : 'border-zinc-700/60 bg-transparent'}`}>
+                  <article key={entry.itemId} className={`card-interactive w-full rounded-xl border bg-transparent p-4 hover:-translate-y-0.5 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
                     <div className="mb-4 flex items-start justify-between">
                       {logo ? (
                         <img src={logo} alt={institution} className="h-10 w-10 rounded-lg object-contain" />
