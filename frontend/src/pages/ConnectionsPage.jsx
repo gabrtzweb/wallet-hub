@@ -530,7 +530,7 @@ function ConnectionsPage({
     <section className="w-full space-y-5">
       {isCredentialsModalOpen && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4">
-            <article className={`w-full max-w-2xl rounded-xl border p-4 md:p-5 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-[#10131a]'}`}>
+            <article className={`w-full max-w-2xl ${glassCardClass} p-4 md:p-5`}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className={`text-lg font-semibold ${primaryTextClass}`}>
                   {connectionFlowStep === 'selection'
@@ -688,7 +688,7 @@ function ConnectionsPage({
                       <button
                         type="button"
                         onClick={handleDisconnectPluggy}
-                        className={`inline-flex h-9 items-center rounded-lg border px-3 text-sm font-semibold ${isLightMode ? 'border-rose-300 text-rose-700 hover:bg-rose-50' : 'border-rose-500/40 text-rose-300 hover:bg-rose-900/20'}`}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
                       >
                         {text.connectionsDisconnectLabel || 'Disconnect Pluggy'}
                       </button>
@@ -697,11 +697,14 @@ function ConnectionsPage({
                       <button
                         type="button"
                         onClick={() => setConnectionFlowStep('selection')}
-                        className={`inline-flex h-9 items-center rounded-lg border px-3 text-sm font-semibold ${isLightMode ? 'border-zinc-300 text-zinc-700' : 'border-zinc-700 text-zinc-300'}`}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-500/50 bg-zinc-900 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-800 md:w-auto md:gap-1.5 md:px-3"
                       >
                         {text.connectionsCancelLabel || 'Cancelar'}
                       </button>
-                      <button type="submit" className="inline-flex h-9 items-center rounded-lg bg-[#1f67ff] px-3 text-sm font-semibold text-white">
+                      <button
+                        type="submit"
+                        className="inline-flex h-9 items-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20"
+                      >
                         {text.connectionsSaveCredentialsLabel || 'Salvar e conectar'}
                       </button>
                       </div>
@@ -761,9 +764,7 @@ function ConnectionsPage({
                           }}
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                             csvImportForm.accountCategory === 'Financeira'
-                              ? isLightMode
-                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                : 'border-blue-400 bg-blue-900/30 text-blue-300'
+                              ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
                               : isLightMode
                                 ? 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
                                 : 'border-zinc-700 bg-zinc-900/40 text-zinc-300 hover:border-zinc-600'
@@ -779,9 +780,7 @@ function ConnectionsPage({
                           }}
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                             csvImportForm.accountCategory === 'Benefícios'
-                              ? isLightMode
-                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                : 'border-blue-400 bg-blue-900/30 text-blue-300'
+                              ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
                               : isLightMode
                                 ? 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
                                 : 'border-zinc-700 bg-zinc-900/40 text-zinc-300 hover:border-zinc-600'
@@ -800,7 +799,7 @@ function ConnectionsPage({
                     <button
                       type="button"
                       onClick={triggerManualCsvFileInput}
-                      className="inline-flex h-9 items-center rounded-lg bg-[#1f67ff] px-4 text-sm font-semibold text-white"
+                      className="inline-flex h-9 items-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20"
                     >
                       {text.connectionsManualBrowseFiles || 'Browse files'}
                     </button>
@@ -864,11 +863,14 @@ function ConnectionsPage({
                       <button
                         type="button"
                         onClick={() => setConnectionFlowStep('selection')}
-                        className={`inline-flex h-9 items-center rounded-lg border px-3 text-sm font-semibold ${isLightMode ? 'border-zinc-300 text-zinc-700' : 'border-zinc-700 text-zinc-300'}`}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-500/50 bg-zinc-900 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-800 md:w-auto md:gap-1.5 md:px-3"
                       >
                         {text.connectionsCancelLabel || 'Cancelar'}
                       </button>
-                      <button type="submit" className="inline-flex h-9 items-center rounded-lg bg-[#1f67ff] px-3 text-sm font-semibold text-white">
+                      <button
+                        type="submit"
+                        className="inline-flex h-9 items-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20"
+                      >
                         {text.connectionsSaveCredentialsLabel || 'Save and connect'}
                       </button>
                     </div>
@@ -950,11 +952,11 @@ function ConnectionsPage({
               <button
                 type="button"
                 onClick={handleDeleteConnection}
-                className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold ${isLightMode ? 'border-zinc-300 text-zinc-700 hover:bg-zinc-100' : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800/80'}`}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
                 title={isPhysicalWalletConnection ? text.connectionsDeleteAllWalletsHint || 'Remove this connection and all wallets' : ''}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>{text.connectionsDelete || 'Excluir'}</span>
+                <span className="hidden md:inline">{isPhysicalWalletConnection ? text.connectionsDeleteAllWalletsLabel || 'Remove all' : text.connectionsDelete || 'Excluir'}</span>
               </button>
             </div>
           </div>
@@ -1023,10 +1025,10 @@ function ConnectionsPage({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteManualWallet(account.id)}
-                                className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold ${isLightMode ? 'border-zinc-300 text-zinc-700 hover:bg-zinc-100' : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800/80'}`}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                <span>{text.connectionsDelete || 'Delete'}</span>
+                                <span className="hidden md:inline">{text.connectionsDelete || 'Delete'}</span>
                               </button>
                               <button
                                 type="button"
@@ -1034,10 +1036,10 @@ function ConnectionsPage({
                                   setIsManualTransactionFormOpen((current) => !current)
                                   setManualTransactionError('')
                                 }}
-                                className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold ${isManualTransactionFormOpen ? (isLightMode ? 'bg-zinc-200 text-zinc-800' : 'bg-zinc-700 text-zinc-100') : 'bg-[#1f67ff] text-white'}`}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 md:w-auto md:gap-1.5 md:px-3"
                               >
                                 <Plus className="h-3.5 w-3.5" />
-                                <span>{text.connectionsAddTransaction || 'Add transaction'}</span>
+                                <span className="hidden md:inline">{text.connectionsAddTransaction || 'Add transaction'}</span>
                               </button>
                             </div>
                           )}
@@ -1107,11 +1109,14 @@ function ConnectionsPage({
                                   setIsManualTransactionFormOpen(false)
                                   setManualTransactionError('')
                                 }}
-                                className={`inline-flex h-8 items-center rounded-lg border px-3 text-xs font-semibold ${isLightMode ? 'border-zinc-300 text-zinc-700' : 'border-zinc-700 text-zinc-300'}`}
+                                className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-500/50 bg-zinc-900 text-xs font-semibold text-zinc-100 transition hover:bg-zinc-800 md:w-auto md:gap-1.5 md:px-3"
                               >
                                 {text.connectionsCancelLabel || 'Cancel'}
                               </button>
-                              <button type="submit" className="inline-flex h-8 items-center rounded-lg bg-[#1f67ff] px-3 text-xs font-semibold text-white">
+                              <button
+                                type="submit"
+                                className="inline-flex h-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 md:w-auto md:gap-1.5 md:px-3"
+                              >
                                 {text.connectionsSaveTransactionLabel || 'Save transaction'}
                               </button>
                             </div>

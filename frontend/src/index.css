@@ -1,3 +1,16 @@
+/* Make default calendar icon match app theme */
+body.light input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+body.light input[type="date"]::-moz-calendar-picker-indicator {
+  filter: none;
+}
+body.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2);
+}
+body.dark input[type="date"]::-moz-calendar-picker-indicator {
+  filter: invert(1) brightness(2);
+}
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
 
 @tailwind base;
