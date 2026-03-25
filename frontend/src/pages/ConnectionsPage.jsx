@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from 'react'
+
 import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CirclePlus, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 import { getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
@@ -6,7 +7,12 @@ import { exportBackup, importBackup } from '../utils/backupExport'
 import { clearStoredPluggyCredentials, getPluggyCredentialsDraft, removeStoredPluggyItemId, savePluggyCredentials } from '../utils/pluggyCredentials'
 import {
   appendManualWalletTransaction,
+  isManualImportConnection,
   getStoredManualConnections,
+  removeStoredManualImportAccount,
+  removeStoredManualImportConnection,
+  saveManualImportConnectionFromCsv,
+  updateManualImportConnectionFromCsv,
   getStoredManualWalletTransactions,
   initializeManualWalletTransactions,
   isManualWalletConnection,
@@ -35,7 +41,7 @@ function ConnectionsPage({
   const [connectionFlowStep, setConnectionFlowStep] = useState('selection')
   const [credentialsForm, setCredentialsForm] = useState(getPluggyCredentialsDraft())
   const [manualConnections, setManualConnections] = useState(getStoredManualConnections)
-  const [csvImportForm, setCsvImportForm] = useState({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+  const [csvImportForm, setCsvImportForm] = useState({ institutionName: '', accountName: '', accountCategory: 'Benefícios', currentBalance: '' })
   const [physicalWalletForm, setPhysicalWalletForm] = useState({ walletName: '', currentBalance: '' })
   const [credentialsError, setCredentialsError] = useState('')
   const [showClientSecret, setShowClientSecret] = useState(false)
@@ -53,8 +59,10 @@ function ConnectionsPage({
   })
   const [backupImportFeedback, setBackupImportFeedback] = useState('')
   const [backupImportFeedbackType, setBackupImportFeedbackType] = useState('')
+  const [manualImportUpdateAccountId, setManualImportUpdateAccountId] = useState('')
   const fileInputRef = useRef(null)
   const manualCsvFileInputRef = useRef(null)
+  const manualImportUpdateFileInputRef = useRef(null)
 
   const manualWalletAccounts = useMemo(
     () => manualConnections.map((entry) => toPhysicalWalletAccount(entry)),
@@ -121,6 +129,8 @@ function ConnectionsPage({
   )
 
   const isPhysicalWalletConnection = isManualWalletConnection(selectedConnection)
+  const isManualImportSelectedConnection = isManualImportConnection(selectedConnection)
+  const isManualSelectedConnection = isPhysicalWalletConnection || isManualImportSelectedConnection
   const selectedManualTransactions = useMemo(() => {
     if (!expandedManualAccountId) return []
     if (selectedConnectionItemId !== 'manual-wallets-group') return []
@@ -194,7 +204,6 @@ function ConnectionsPage({
         const secondDate = new Date(second?.date || second?.paymentDate || second?.createdAt || 0).getTime()
         return secondDate - firstDate
       })
-      .slice(0, 5)
   }, [expandedPluggyAccountId, investments, selectedConnectionItemId, transactions])
 
   const selectedBankAccounts = useMemo(
@@ -253,7 +262,7 @@ function ConnectionsPage({
 
   const openCredentialsModal = () => {
     setCredentialsForm(getPluggyCredentialsDraft())
-    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios', currentBalance: '' })
     setPhysicalWalletForm({ walletName: '', currentBalance: '' })
     setCredentialsError('')
     setShowClientSecret(false)
@@ -264,7 +273,7 @@ function ConnectionsPage({
 
   const closeCredentialsModal = () => {
     setIsCredentialsModalOpen(false)
-    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios', currentBalance: '' })
     setPhysicalWalletForm({ walletName: '', currentBalance: '' })
     setCredentialsError('')
     setShowClientSecret(false)
@@ -328,6 +337,17 @@ function ConnectionsPage({
       return
     }
 
+    if (isManualImportConnection(selectedConnection)) {
+      if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão?')) {
+        return
+      }
+
+      removeStoredManualImportConnection(selectedConnectionItemId || selectedConnection?.id)
+      setSelectedConnectionItemId(null)
+      await onCredentialsSaved?.()
+      return
+    }
+
     if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão dos seus item IDs?')) {
       return
     }
@@ -353,6 +373,20 @@ function ConnectionsPage({
     await onCredentialsSaved?.()
   }
 
+  const handleDeleteManualImportAccount = async (accountId) => {
+    if (!accountId) return
+
+    if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão?')) {
+      return
+    }
+
+    const removed = removeStoredManualImportAccount(accountId)
+    if (!removed) return
+
+    setExpandedPluggyAccountId(null)
+    await onCredentialsSaved?.()
+  }
+
   const handleDisconnectPluggy = async () => {
     if (!window.confirm(text.connectionsDisconnectConfirm || 'Deseja desconectar completamente a Pluggy?')) {
       return
@@ -365,6 +399,36 @@ function ConnectionsPage({
     setCopiedField('')
     setSelectedConnectionItemId(null)
     closeCredentialsModal()
+    await onCredentialsSaved?.()
+  }
+
+  const handleRemoveAllConnections = async () => {
+    if (connections.length === 0) return
+
+    const confirmLabel = text.connectionsDeleteConfirmAll || 'Deseja remover todas as conexoes?'
+    if (!window.confirm(confirmLabel)) {
+      return
+    }
+
+    saveStoredManualConnections([])
+    setManualConnections([])
+
+    connections.forEach((entry) => {
+      if (!isManualImportConnection(entry)) return
+      removeStoredManualImportConnection(entry?.itemId || entry?.id)
+    })
+
+    clearStoredPluggyCredentials()
+    setCredentialsForm(getPluggyCredentialsDraft())
+    setCredentialsError('')
+    setShowClientSecret(false)
+    setCopiedField('')
+    setSelectedConnectionItemId(null)
+    setExpandedManualAccountId(null)
+    setExpandedPluggyAccountId(null)
+    setIsManualTransactionFormOpen(false)
+    setManualTransactionError('')
+
     await onCredentialsSaved?.()
   }
 
@@ -448,28 +512,54 @@ function ConnectionsPage({
     manualCsvFileInputRef.current?.click()
   }
 
-  const createManualCsvAccountPayload = (file) => {
-    const nowIso = new Date().toISOString()
+  const triggerManualImportUpdateFileInput = (accountId) => {
+    setManualImportUpdateAccountId(String(accountId || ''))
+    manualImportUpdateFileInputRef.current?.click()
+  }
 
-    return {
-      connectionType: 'MANUAL_IMPORT',
-      institutionName: String(csvImportForm.institutionName || '').trim(),
-      accountName: String(csvImportForm.accountName || '').trim(),
-      accountCategory: csvImportForm.accountCategory || 'Benefícios',
-      fileName: file?.name || '',
-      fileSize: Number(file?.size || 0),
-      createdAt: nowIso,
-      updatedAt: nowIso,
+  const handleManualImportUpdateFileSelected = async (event) => {
+    const file = event.target?.files?.[0]
+    const targetAccountId = String(manualImportUpdateAccountId || '').trim()
+
+    if (!file || !targetAccountId) {
+      if (manualImportUpdateFileInputRef.current) {
+        manualImportUpdateFileInputRef.current.value = ''
+      }
+      return
+    }
+
+    try {
+      const csvContent = await file.text()
+      const updated = updateManualImportConnectionFromCsv({
+        connectionId: targetAccountId,
+        csvContent,
+      })
+
+      if (!updated?.success) {
+        setCredentialsError(text.connectionsCsvValidationError || 'Fill Institution Name, Account Name and Account Category.')
+      } else {
+        setCredentialsError('')
+        await onCredentialsSaved?.()
+      }
+    } catch {
+      setCredentialsError(text.connectionsCsvFileRequiredError || 'Select a CSV file to continue.')
+    }
+
+    setManualImportUpdateAccountId('')
+    if (manualImportUpdateFileInputRef.current) {
+      manualImportUpdateFileInputRef.current.value = ''
     }
   }
 
-  const handleManualCsvFileSelected = (event) => {
+  const handleManualCsvFileSelected = async (event) => {
     const file = event.target?.files?.[0]
     const institutionName = String(csvImportForm.institutionName || '').trim()
     const accountName = String(csvImportForm.accountName || '').trim()
     const accountCategory = String(csvImportForm.accountCategory || '').trim()
+    const currentBalanceRaw = String(csvImportForm.currentBalance || '').trim()
+    const parsedCurrentBalance = Number(currentBalanceRaw)
 
-    if (!institutionName || !accountName || !accountCategory) {
+    if (!institutionName || !accountName || !accountCategory || !currentBalanceRaw || Number.isNaN(parsedCurrentBalance)) {
       setCredentialsError(text.connectionsCsvValidationError || 'Fill Institution Name, Account Name and Account Category.')
       if (manualCsvFileInputRef.current) {
         manualCsvFileInputRef.current.value = ''
@@ -482,10 +572,31 @@ function ConnectionsPage({
       return
     }
 
-    const payload = createManualCsvAccountPayload(file)
-    localStorage.setItem('wallet_hub_manual_csv_pending_payload', JSON.stringify(payload))
+    try {
+      const csvContent = await file.text()
+      const saved = saveManualImportConnectionFromCsv({
+        institutionName,
+        accountName,
+        accountCategory,
+        currentBalance: parsedCurrentBalance,
+        csvContent,
+      })
 
-    setCredentialsError('')
+      if (!saved?.connection) {
+        setCredentialsError(text.connectionsCsvValidationError || 'Fill Institution Name, Account Name and Account Category.')
+        if (manualCsvFileInputRef.current) {
+          manualCsvFileInputRef.current.value = ''
+        }
+        return
+      }
+
+      setCredentialsError('')
+      closeCredentialsModal()
+      setSelectedConnectionItemId(saved.connection.itemId)
+      await onCredentialsSaved?.()
+    } catch {
+      setCredentialsError(text.connectionsCsvFileRequiredError || 'Select a CSV file to continue.')
+    }
 
     if (manualCsvFileInputRef.current) {
       manualCsvFileInputRef.current.value = ''
@@ -790,6 +901,21 @@ function ConnectionsPage({
                         </button>
                       </div>
                     </div>
+                    <label className="block">
+                      <span className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsPhysicalBalanceLabel || 'Current Balance'}</span>
+                      <input
+                        type="number"
+                        required
+                        value={csvImportForm.currentBalance}
+                        onChange={(event) => {
+                          setCsvImportForm((current) => ({ ...current, currentBalance: event.target.value }))
+                          if (credentialsError) setCredentialsError('')
+                        }}
+                        placeholder="0.00"
+                        step="0.01"
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
+                      />
+                    </label>
                   </div>
 
                   <div className={`rounded-lg border-2 border-dashed p-8 text-center ${isLightMode ? 'border-zinc-300 bg-zinc-50' : 'border-zinc-700 bg-zinc-900/30'}`}>
@@ -927,22 +1053,22 @@ function ConnectionsPage({
                   <p className={`text-[14px] font-semibold ${primaryTextClass}`}>
                     {isPhysicalWalletConnection
                       ? (text.connectionsPhysicalConnectionLabel || 'Physical Wallet')
-                      : `${text.connectionsBankLabel || 'Banco'} ${getInstitutionName(selectedConnection)}`}
+                      : getInstitutionName(selectedConnection)}
                   </p>
-                  <span className={`inline-flex h-2 w-2 rounded-full motion-safe:animate-pulse ${isPhysicalWalletConnection ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]'}`} />
+                  <span className={`inline-flex h-2 w-2 rounded-full motion-safe:animate-pulse ${isManualSelectedConnection ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]'}`} />
                 </div>
                 <p className={`mt-1 flex items-center gap-1.5 text-[12px]`}>
                   <Clock3 className={`h-[12px] w-[12px] ${secondaryTextClass}`} />
                   <span className={secondaryTextClass}>{formatRelativeSync(selectedConnection)}</span>
-                  {!isPhysicalWalletConnection && (
+                  {!isManualSelectedConnection && (
                     <>
                       <span className={secondaryTextClass}>·</span>
                       <span className={`text-[11px] ${secondaryTextClass}`}>{text.connectionsItemIdLabel || 'Item ID'}: {selectedConnection?.itemId || '--'}</span>
                     </>
                   )}
                   <span className={secondaryTextClass}>·</span>
-                  <span className={`font-semibold ${isPhysicalWalletConnection ? 'text-amber-400/60' : 'text-emerald-400/60'}`}>
-                    {isPhysicalWalletConnection ? (text.connectionsManualLabel || 'Manual') : (text.connectionsSyncLabel || 'Sincronizado')}
+                  <span className={`font-semibold ${isManualSelectedConnection ? 'text-amber-400/60' : 'text-emerald-400/60'}`}>
+                    {isManualSelectedConnection ? (text.connectionsManualLabel || 'Manual') : (text.connectionsSyncLabel || 'Sincronizado')}
                   </span>
                 </p>
               </div>
@@ -953,10 +1079,10 @@ function ConnectionsPage({
                 type="button"
                 onClick={handleDeleteConnection}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
-                title={isPhysicalWalletConnection ? text.connectionsDeleteAllWalletsHint || 'Remove this connection and all wallets' : ''}
+                title={isManualSelectedConnection ? text.connectionsDeleteAllWalletsHint || 'Remove this connection and all wallets' : ''}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">{isPhysicalWalletConnection ? text.connectionsDeleteAllWalletsLabel || 'Remove all' : text.connectionsDelete || 'Excluir'}</span>
+                <span className="hidden md:inline">{isManualSelectedConnection ? text.connectionsDeleteAllWalletsLabel || 'Remove all' : text.connectionsDelete || 'Excluir'}</span>
               </button>
             </div>
           </div>
@@ -1020,27 +1146,46 @@ function ConnectionsPage({
                           <h4 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
                             {text.connectionsTransactionsLabel || 'Transactions'}
                           </h4>
-                          {isPhysicalWalletConnection && (
+                          {(isPhysicalWalletConnection || isManualImportSelectedConnection) && (
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => handleDeleteManualWallet(account.id)}
+                                onClick={() => {
+                                  if (isPhysicalWalletConnection) {
+                                    handleDeleteManualWallet(account.id)
+                                    return
+                                  }
+
+                                  handleDeleteManualImportAccount(account.id)
+                                }}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 <span className="hidden md:inline">{text.connectionsDelete || 'Delete'}</span>
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsManualTransactionFormOpen((current) => !current)
-                                  setManualTransactionError('')
-                                }}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 md:w-auto md:gap-1.5 md:px-3"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                                <span className="hidden md:inline">{text.connectionsAddTransaction || 'Add transaction'}</span>
-                              </button>
+                              {isManualImportSelectedConnection && (
+                                <button
+                                  type="button"
+                                  onClick={() => triggerManualImportUpdateFileInput(account.id)}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 md:w-auto md:gap-1.5 md:px-3"
+                                >
+                                  <Upload className="h-3.5 w-3.5" />
+                                  <span className="hidden md:inline">{text.connectionsUpdateBalanceLabel || 'Update balance'}</span>
+                                </button>
+                              )}
+                              {isPhysicalWalletConnection && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsManualTransactionFormOpen((current) => !current)
+                                    setManualTransactionError('')
+                                  }}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 md:w-auto md:gap-1.5 md:px-3"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  <span className="hidden md:inline">{text.connectionsAddTransaction || 'Add transaction'}</span>
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1123,84 +1268,86 @@ function ConnectionsPage({
                           </form>
                         )}
 
-                        <div className="space-y-2">
-                          {isPhysicalWalletConnection ? (
-                            // Show manual transactions for physical wallets
-                            selectedManualTransactions.length === 0 ? (
-                              <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
-                            ) : (
-                              selectedManualTransactions.map((transaction) => {
-                                const amount = Number(transaction?.amount || 0)
-                                const isIncome = amount >= 0
-                                const rawDate = transaction?.date || transaction?.createdAt
-                                const parsedDate = rawDate ? new Date(rawDate) : null
-                                const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                  ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
-                                  : '--'
+                        <div className="max-h-[300px] overflow-y-auto pr-1 transaction-scrollbar">
+                          <div className="space-y-2">
+                            {isPhysicalWalletConnection ? (
+                              // Show manual transactions for physical wallets
+                              selectedManualTransactions.length === 0 ? (
+                                <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
+                              ) : (
+                                selectedManualTransactions.map((transaction) => {
+                                  const amount = Number(transaction?.amount || 0)
+                                  const isIncome = amount >= 0
+                                  const rawDate = transaction?.date || transaction?.createdAt
+                                  const parsedDate = rawDate ? new Date(rawDate) : null
+                                  const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
+                                    ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                    : '--'
 
-                                return (
-                                  <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
-                                    <div className="flex min-w-0 items-center gap-2 pr-3">
-                                      <span
-                                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                                          isLightMode
-                                            ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
-                                            : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
-                                        }`}
-                                      >
-                                        {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
-                                      </span>
-                                      <div className="min-w-0">
-                                        <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
-                                        <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                  return (
+                                    <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
+                                      <div className="flex min-w-0 items-center gap-2 pr-3">
+                                        <span
+                                          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                                            isLightMode
+                                              ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
+                                              : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
+                                          }`}
+                                        >
+                                          {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+                                        </span>
+                                        <div className="min-w-0">
+                                          <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
+                                          <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                        </div>
                                       </div>
+                                      <p className={`shrink-0 text-sm font-semibold ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
+                                        {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
+                                      </p>
                                     </div>
-                                    <p className={`shrink-0 text-sm font-semibold ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
-                                      {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
-                                    </p>
-                                  </div>
-                                )
-                              })
-                            )
-                          ) : (
-                            // Show pluggy transactions for regular accounts
-                            selectedPluggyAccountTransactions.length === 0 ? (
-                              <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
+                                  )
+                                })
+                              )
                             ) : (
-                              selectedPluggyAccountTransactions.map((transaction) => {
-                                const amount = Number(getNormalizedAmount?.(transaction) ?? transaction?.amount ?? 0)
-                                const isIncome = amount >= 0
-                                const rawDate = transaction?.date || transaction?.createdAt
-                                const parsedDate = rawDate ? new Date(rawDate) : null
-                                const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                  ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
-                                  : '--'
+                              // Show pluggy transactions for regular accounts
+                              selectedPluggyAccountTransactions.length === 0 ? (
+                                <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
+                              ) : (
+                                selectedPluggyAccountTransactions.map((transaction) => {
+                                  const amount = Number(getNormalizedAmount?.(transaction) ?? transaction?.amount ?? 0)
+                                  const isIncome = amount >= 0
+                                  const rawDate = transaction?.date || transaction?.createdAt
+                                  const parsedDate = rawDate ? new Date(rawDate) : null
+                                  const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
+                                    ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                    : '--'
 
-                                return (
-                                  <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
-                                    <div className="flex min-w-0 items-center gap-2 pr-3">
-                                      <span
-                                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                                          isLightMode
-                                            ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
-                                            : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
-                                        }`}
-                                      >
-                                        {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
-                                      </span>
-                                      <div className="min-w-0">
-                                        <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
-                                        <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                  return (
+                                    <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
+                                      <div className="flex min-w-0 items-center gap-2 pr-3">
+                                        <span
+                                          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                                            isLightMode
+                                              ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
+                                              : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
+                                          }`}
+                                        >
+                                          {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+                                        </span>
+                                        <div className="min-w-0">
+                                          <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
+                                          <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                        </div>
                                       </div>
+                                      <p className={`shrink-0 text-sm font-semibold ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
+                                        {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
+                                      </p>
                                     </div>
-                                    <p className={`shrink-0 text-sm font-semibold ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
-                                      {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
-                                    </p>
-                                  </div>
-                                )
-                              })
-                            )
-                          )}
+                                  )
+                                })
+                              )
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1251,43 +1398,45 @@ function ConnectionsPage({
                         <h4 className={`mb-3 text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
                           {text.connectionsTransactionsLabel || 'Transactions'}
                         </h4>
-                        <div className="space-y-2">
-                          {selectedPluggyAccountTransactions.length === 0 ? (
-                            <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
-                          ) : (
-                            selectedPluggyAccountTransactions.map((transaction) => {
-                              const amount = Number(getNormalizedAmount?.(transaction) ?? transaction?.amount ?? 0)
-                              const isIncome = amount >= 0
-                              const rawDate = transaction?.date || transaction?.createdAt
-                              const parsedDate = rawDate ? new Date(rawDate) : null
-                              const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
-                                : '--'
+                        <div className="max-h-[300px] overflow-y-auto pr-1 transaction-scrollbar">
+                          <div className="space-y-2">
+                            {selectedPluggyAccountTransactions.length === 0 ? (
+                              <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
+                            ) : (
+                              selectedPluggyAccountTransactions.map((transaction) => {
+                                const amount = Number(getNormalizedAmount?.(transaction) ?? transaction?.amount ?? 0)
+                                const isIncome = amount >= 0
+                                const rawDate = transaction?.date || transaction?.createdAt
+                                const parsedDate = rawDate ? new Date(rawDate) : null
+                                const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
+                                  ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                  : '--'
 
-                              return (
-                                <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
-                                  <div className="flex min-w-0 items-center gap-2 pr-3">
-                                    <span
-                                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                                        isLightMode
-                                          ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
-                                          : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
-                                      }`}
-                                    >
-                                      {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
-                                    </span>
-                                    <div className="min-w-0">
-                                      <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
-                                      <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                return (
+                                  <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
+                                    <div className="flex min-w-0 items-center gap-2 pr-3">
+                                      <span
+                                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                                          isLightMode
+                                            ? isIncome ? 'bg-emerald-100/80 text-[#22c55e]' : 'bg-rose-100/80 text-[#f87171]'
+                                            : isIncome ? 'bg-emerald-500/10 text-[#22c55e]' : 'bg-rose-500/10 text-[#f87171]'
+                                        }`}
+                                      >
+                                        {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+                                      </span>
+                                      <div className="min-w-0">
+                                        <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
+                                        <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                      </div>
                                     </div>
+                                    <p className={`shrink-0 text-sm font-semibold ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
+                                      {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
+                                    </p>
                                   </div>
-                                  <p className={`shrink-0 text-sm font-semibold ${isIncome ? 'text-[#22c55e]' : 'text-[#f87171]'}`}>
-                                    {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
-                                  </p>
-                                </div>
-                              )
-                            })
-                          )}
+                                )
+                              })
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1338,41 +1487,43 @@ function ConnectionsPage({
                         <h4 className={`mb-3 text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
                           {text.connectionsTransactionsLabel || 'Transactions'}
                         </h4>
-                        <div className="space-y-2">
-                          {selectedPluggyAccountTransactions.length === 0 ? (
-                            <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
-                          ) : (
-                            selectedPluggyAccountTransactions.map((transaction) => {
-                              const amount = Number(getNormalizedAmount?.(transaction) ?? transaction?.amount ?? 0)
-                              const isIncome = amount >= 0
-                              const rawDate = transaction?.date || transaction?.createdAt
-                              const parsedDate = rawDate ? new Date(rawDate) : null
-                              const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
-                                : '--'
+                        <div className="max-h-[300px] overflow-y-auto pr-1 transaction-scrollbar">
+                          <div className="space-y-2">
+                            {selectedPluggyAccountTransactions.length === 0 ? (
+                              <p className={`text-xs ${secondaryTextClass}`}>{text.noTransactions || 'No transactions available.'}</p>
+                            ) : (
+                              selectedPluggyAccountTransactions.map((transaction) => {
+                                const amount = Number(getNormalizedAmount?.(transaction) ?? transaction?.amount ?? 0)
+                                const isIncome = amount >= 0
+                                const rawDate = transaction?.date || transaction?.createdAt
+                                const parsedDate = rawDate ? new Date(rawDate) : null
+                                const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
+                                  ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                  : '--'
 
-                              return (
-                                <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
-                                  <div className="flex min-w-0 items-center gap-2 pr-3">
-                                    <span
-                                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                                        isLightMode ? 'bg-sky-100/80 text-[#60a5fa]' : 'bg-sky-500/10 text-[#60a5fa]'
-                                      }`}
-                                    >
-                                      {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
-                                    </span>
-                                    <div className="min-w-0">
-                                      <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
-                                      <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                return (
+                                  <div key={transaction.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isLightMode ? 'border-zinc-300 bg-white' : 'border-zinc-700 bg-zinc-900/40'}`}>
+                                    <div className="flex min-w-0 items-center gap-2 pr-3">
+                                      <span
+                                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                                          isLightMode ? 'bg-sky-100/80 text-[#60a5fa]' : 'bg-sky-500/10 text-[#60a5fa]'
+                                        }`}
+                                      >
+                                        {isIncome ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+                                      </span>
+                                      <div className="min-w-0">
+                                        <p className={`truncate text-sm font-medium ${primaryTextClass}`}>{transaction?.description || text.uncategorized}</p>
+                                        <p className={`text-xs ${secondaryTextClass}`}>{dateLabel}</p>
+                                      </div>
                                     </div>
+                                    <p className="shrink-0 text-sm font-semibold text-[#60a5fa]">
+                                      {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
+                                    </p>
                                   </div>
-                                  <p className="shrink-0 text-sm font-semibold text-[#60a5fa]">
-                                    {isIncome ? '+' : '-'}R$ {Math.abs(amount).toFixed(2)}
-                                  </p>
-                                </div>
-                              )
-                            })
-                          )}
+                                )
+                              })
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1384,6 +1535,14 @@ function ConnectionsPage({
           </div>
         </article>
       )}
+
+      <input
+        ref={manualImportUpdateFileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        onChange={handleManualImportUpdateFileSelected}
+        className="hidden"
+      />
 
       {!selectedConnection && (
       <article className={`${glassCardClass} w-full overflow-hidden`}>
@@ -1397,6 +1556,17 @@ function ConnectionsPage({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRemoveAllConnections}
+              aria-label={text.connectionsDeleteAllLabel || 'Remover todos'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
+              title={text.connectionsDeleteAllHint || 'Remove all available connections'}
+              disabled={connections.length === 0}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden md:inline">{text.connectionsDeleteAllLabel || 'Remover todos'}</span>
+            </button>
             <button
               type="button"
               onClick={exportBackup}
@@ -1445,6 +1615,8 @@ function ConnectionsPage({
                 const institution = getInstitutionName(entry)
                 const logo = getBankLogoUrl(entry)
                 const isPhysicalWalletCard = isManualWalletConnection(entry)
+                const isManualImportCard = isManualImportConnection(entry)
+                const isManualCard = isPhysicalWalletCard || isManualImportCard
 
                 return (
                   <article key={entry.itemId} className={`card-interactive w-full rounded-xl border bg-transparent p-4 hover:-translate-y-0.5 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
@@ -1471,20 +1643,20 @@ function ConnectionsPage({
                         </span>
                       )}
 
-                      <span className={`inline-flex h-2.5 w-2.5 rounded-full motion-safe:animate-pulse ${isPhysicalWalletCard ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]'}`} />
+                      <span className={`inline-flex h-2.5 w-2.5 rounded-full motion-safe:animate-pulse ${isManualCard ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]'}`} />
                     </div>
 
                     <p className={`text-[14px] font-semibold ${primaryTextClass}`}>
                       {isPhysicalWalletCard
                         ? (text.connectionsPhysicalConnectionLabel || 'Physical Wallet')
-                        : `${text.connectionsBankLabel || 'Banco'} ${institution}`}
+                        : institution}
                     </p>
                     <p className={`mt-1 flex items-center gap-1.5 text-[12px]`}>
                       <Clock3 className={`h-[12px] w-[12px] ${secondaryTextClass}`} />
                       <span className={secondaryTextClass}>{formatRelativeSync(entry)}</span>
                       <span className={secondaryTextClass}>·</span>
-                      <span className={`font-semibold ${isPhysicalWalletCard ? 'text-amber-400/60' : 'text-emerald-400/60'}`}>
-                        {isPhysicalWalletCard ? (text.connectionsManualLabel || 'Manual') : (text.connectionsSyncLabel || 'Sincronizado')}
+                      <span className={`font-semibold ${isManualCard ? 'text-amber-400/60' : 'text-emerald-400/60'}`}>
+                        {isManualCard ? (text.connectionsManualLabel || 'Manual') : (text.connectionsSyncLabel || 'Sincronizado')}
                       </span>
                     </p>
 

@@ -8,7 +8,15 @@ import {
   getInstitutionName,
   getInvestmentValue,
 } from '../config/dashboardConfig'
-import { getStoredManualConnections, getStoredManualWalletTransactions, toPhysicalWalletAccount, isManualWalletConnection } from '../utils/manualConnections'
+import {
+  getStoredManualConnections,
+  getStoredManualImportConnections,
+  getStoredManualImportTransactions,
+  getStoredManualWalletTransactions,
+  isManualWalletConnection,
+  toManualImportAccount,
+  toPhysicalWalletAccount,
+} from '../utils/manualConnections'
 import { getPluggyRequestHeaders } from '../utils/pluggyCredentials'
 
 function useDashboardData({ language, text }) {
@@ -64,19 +72,24 @@ function useDashboardData({ language, text }) {
 
       const payload = await response.json()
 
-      const manualConnections = getStoredManualConnections()
-      const manualWalletAccounts = manualConnections.map((connection) => toPhysicalWalletAccount(connection))
-      const manualWalletTransactions = manualConnections.flatMap((connection) =>
+      const manualWalletConnections = getStoredManualConnections()
+      const manualImportConnections = getStoredManualImportConnections()
+      const manualWalletAccounts = manualWalletConnections.map((connection) => toPhysicalWalletAccount(connection))
+      const manualImportAccounts = manualImportConnections.map((connection) => toManualImportAccount(connection))
+      const manualWalletTransactions = manualWalletConnections.flatMap((connection) =>
         getStoredManualWalletTransactions(connection.id, text, connection),
+      )
+      const manualImportTransactions = manualImportConnections.flatMap((connection) =>
+        getStoredManualImportTransactions(connection.id),
       )
 
       const apiBankAccounts = getArrayResults(payload?.bankAccounts)
       const apiTransactions = getArrayResults(payload?.transactions)
 
-      setBankAccounts([...apiBankAccounts, ...manualWalletAccounts])
+      setBankAccounts([...apiBankAccounts, ...manualWalletAccounts, ...manualImportAccounts])
       setCreditAccounts(getArrayResults(payload?.creditCards))
       setInvestments(getArrayResults(payload?.investments))
-      setTransactions([...apiTransactions, ...manualWalletTransactions])
+      setTransactions([...apiTransactions, ...manualWalletTransactions, ...manualImportTransactions])
       setBalanceEvolution(getArrayResults(payload?.balanceEvolution))
       setLastSyncedAt(new Date())
 
@@ -87,16 +100,21 @@ function useDashboardData({ language, text }) {
         setError(`${text.partialRefreshPrefix} (${institutionName}). ${text.partialRefreshSuffix}`)
       }
     } catch (err) {
-      const manualConnections = getStoredManualConnections()
-      const manualWalletAccounts = manualConnections.map((connection) => toPhysicalWalletAccount(connection))
-      const manualWalletTransactions = manualConnections.flatMap((connection) =>
+      const manualWalletConnections = getStoredManualConnections()
+      const manualImportConnections = getStoredManualImportConnections()
+      const manualWalletAccounts = manualWalletConnections.map((connection) => toPhysicalWalletAccount(connection))
+      const manualImportAccounts = manualImportConnections.map((connection) => toManualImportAccount(connection))
+      const manualWalletTransactions = manualWalletConnections.flatMap((connection) =>
         getStoredManualWalletTransactions(connection.id, text, connection),
       )
+      const manualImportTransactions = manualImportConnections.flatMap((connection) =>
+        getStoredManualImportTransactions(connection.id),
+      )
 
-      setBankAccounts(manualWalletAccounts)
+      setBankAccounts([...manualWalletAccounts, ...manualImportAccounts])
       setCreditAccounts([])
       setInvestments([])
-      setTransactions(manualWalletTransactions)
+      setTransactions([...manualWalletTransactions, ...manualImportTransactions])
       setBalanceEvolution([])
       setError(err instanceof Error ? err.message : text.fallbackLoadError)
     } finally {
@@ -222,6 +240,7 @@ function useDashboardData({ language, text }) {
 
   const monthlyIncome = useMemo(
     () => currentMonthTransactions.reduce((sum, transaction) => {
+      if (transaction?.isTransfer) return sum
       const amount = getNormalizedAmount(transaction)
       return amount > 0 ? sum + amount : sum
     }, 0),
@@ -230,6 +249,7 @@ function useDashboardData({ language, text }) {
 
   const monthlyExpenses = useMemo(
     () => Math.abs(currentMonthTransactions.reduce((sum, transaction) => {
+      if (transaction?.isTransfer) return sum
       const amount = getNormalizedAmount(transaction)
       return amount < 0 ? sum + amount : sum
     }, 0)),
@@ -277,6 +297,7 @@ function useDashboardData({ language, text }) {
     const grouped = new Map()
 
     currentMonthTransactions.forEach((transaction) => {
+      if (transaction?.isTransfer) return
       const amount = getNormalizedAmount(transaction)
       if (amount >= 0) return
 
@@ -419,6 +440,7 @@ function useDashboardData({ language, text }) {
 
   const flowMonthlyIncome = useMemo(
     () => selectedMonthTransactions.reduce((sum, transaction) => {
+      if (transaction?.isTransfer) return sum
       const amount = getNormalizedAmount(transaction)
       return amount > 0 ? sum + amount : sum
     }, 0),
@@ -427,6 +449,7 @@ function useDashboardData({ language, text }) {
 
   const flowMonthlyExpenses = useMemo(
     () => Math.abs(selectedMonthTransactions.reduce((sum, transaction) => {
+      if (transaction?.isTransfer) return sum
       const amount = getNormalizedAmount(transaction)
       return amount < 0 ? sum + amount : sum
     }, 0)),

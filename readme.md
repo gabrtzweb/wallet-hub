@@ -16,12 +16,22 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
 
 ## What This Version Includes
 
-- Physical wallet support for manual cash tracking (`/physical-wallet.png`).
+- Physical wallet and manual CSV connection support with account categorization (`Financial` and `Benefits`).
 - Backup and restore for credentials and manual data via JSON.
-- Flow page summary cards and financial health scoring.
-- Monthly balance evolution and categorized transactions.
-- Dynamic institution logo resolution with domain mapping.
-- Local backend logo proxy endpoint to avoid browser-side logo blocking during local development.
+- Flow page enhancements:
+	- Benefits include/exclude toggle scoped per page.
+	- Projected Balance logic that always excludes Benefits balances.
+	- Financial Health card with 4 metrics (`Savings`, `Debt`, `Spending`, `Investments`).
+	- Transfers excluded from income/expense metric totals.
+- Overview improvements for grouped manual accounts and cleaner account count display.
+- Connections improvements including bulk remove all connections action.
+- Dynamic institution logo resolution with backend logo proxy endpoint for local reliability.
+
+## Latest Mockups
+
+| Desktop | Mobile |
+| --- | --- |
+| ![Overview Desktop](docs/overview-Macbook-Air.webp) | ![Overview Mobile](docs/overview-iPhone-14.webp) |
 
 ## Pluggy Resources
 
@@ -226,4 +236,4 @@ Logo proxy behavior:
 
 ## Version
 
-- Current app version: `Wallet Hub v1.2.0`
+- Current app version: `Wallet Hub v1.3.0`

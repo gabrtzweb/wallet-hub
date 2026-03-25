@@ -24,9 +24,12 @@ function FlowPage({
   getNormalizedAmount,
   accountMetadataById,
   bankBalanceTotal,
+  projectedBankBalanceTotal,
   categoryChartColors,
   creditUsedTotal,
   creditLimitTotal,
+  financialHealth: financialHealthInput,
+  investmentsTotal = 0,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
@@ -151,6 +154,7 @@ function FlowPage({
     const totals = new Map()
 
     allMonthEntries.forEach((transaction) => {
+      if (transaction?.isTransfer) return
       const normalizedAmount = getNormalizedAmount(transaction)
       if (normalizedAmount >= 0) return
 
@@ -167,6 +171,7 @@ function FlowPage({
     const totals = new Map()
 
     allMonthEntries.forEach((transaction) => {
+      if (transaction?.isTransfer) return
       const normalizedAmount = getNormalizedAmount(transaction)
       if (normalizedAmount <= 0) return
 
@@ -183,6 +188,7 @@ function FlowPage({
     const totals = new Map()
 
     allMonthEntries.forEach((transaction) => {
+      if (transaction?.isTransfer) return
       const normalizedAmount = getNormalizedAmount(transaction)
       if (normalizedAmount >= 0) return
 
@@ -235,13 +241,13 @@ function FlowPage({
   const maxPendingCategoryValue = topPendingCategories[0]?.amount || 1
 
   const financialHealth = useMemo(
-    () => calculateFinancialHealth(monthlyIncome, monthlyExpenses, creditUsedTotal || 0, creditLimitTotal || 0),
-    [monthlyIncome, monthlyExpenses, creditUsedTotal, creditLimitTotal],
+    () => financialHealthInput || calculateFinancialHealth(monthlyIncome, monthlyExpenses, creditUsedTotal || 0, creditLimitTotal || 0, investmentsTotal || 0),
+    [creditLimitTotal, creditUsedTotal, financialHealthInput, investmentsTotal, monthlyExpenses, monthlyIncome],
   )
 
   const projectedBankTotal = useMemo(
-    () => Number(bankBalanceTotal) || 0,
-    [bankBalanceTotal],
+    () => Number(projectedBankBalanceTotal) || 0,
+    [projectedBankBalanceTotal],
   )
 
   const projectedCreditTotal = useMemo(
@@ -410,8 +416,9 @@ function FlowPage({
             <ChartNoAxesCombined className="h-[18px] w-[18px] text-[#1f67ff]" />
             <p className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.flowProjectedBalanceTitle}</p>
           </div>
-          <div className="mt-2 flex items-start justify-between gap-4">
-            <div className="min-w-0">
+          <p className={`mt-2 text-sm ${secondaryTextClass}`}>{text.flowProjectedBalanceSubtitle}</p>
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1 text-left">
               {isPastFlowMonth ? (
                 <>
                   <p className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-700' : 'bg-zinc-800 text-zinc-300'}`}>
@@ -426,7 +433,6 @@ function FlowPage({
                   <p className={`text-[24px] font-bold ${projectedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {projectedBalance < 0 ? '-' : ''}{formatMoney(Math.abs(projectedBalance))}
                   </p>
-                  <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>{text.flowProjectedBalanceSubtitle}</p>
                   <p className="mt-1 text-[11px] font-semibold text-[#1f67ff]">{projectedNextMonthLabel}</p>
                 </>
               )}
@@ -475,7 +481,7 @@ function FlowPage({
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          <div className="mt-4 grid grid-cols-2 gap-2 text-center md:grid-cols-4">
             <div className={`rounded-lg px-2 py-2 ${isLightMode ? 'bg-zinc-100' : 'bg-zinc-900/50'}`}>
               <p className={`text-[11px] ${secondaryTextClass}`}>{text.flowFinancialHealthSavings}</p>
               <p className="text-sm font-semibold" style={{ color: getMetricColor(financialHealth.savings.status) }}>{getMetricLabel(financialHealth.savings.status)}</p>
@@ -487,6 +493,10 @@ function FlowPage({
             <div className={`rounded-lg px-2 py-2 ${isLightMode ? 'bg-zinc-100' : 'bg-zinc-900/50'}`}>
               <p className={`text-[11px] ${secondaryTextClass}`}>{text.flowFinancialHealthSpending}</p>
               <p className="text-sm font-semibold" style={{ color: getMetricColor(financialHealth.spending.status) }}>{getMetricLabel(financialHealth.spending.status)}</p>
+            </div>
+            <div className={`rounded-lg px-2 py-2 ${isLightMode ? 'bg-zinc-100' : 'bg-zinc-900/50'}`}>
+              <p className={`text-[11px] ${secondaryTextClass}`}>{text.flowFinancialHealthInvestments || 'Investments'}</p>
+              <p className="text-sm font-semibold" style={{ color: getMetricColor(financialHealth.investments?.status) }}>{getMetricLabel(financialHealth.investments?.status || 'Poor')}</p>
             </div>
           </div>
         </article>

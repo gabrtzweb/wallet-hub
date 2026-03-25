@@ -9,6 +9,7 @@ import {
   Tooltip,
   XAxis,
 } from 'recharts'
+import { useMemo } from 'react'
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronUp, Clock3, CreditCard, Donut, Landmark, ReceiptText, ScrollText, TrendingUp, Wallet } from 'lucide-react'
 import { getCreditLimit, getFriendlyAccountLabel, getInstitutionName } from '../config/dashboardConfig'
 import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
@@ -26,6 +27,7 @@ function OverviewPage({
   investmentBarTrackClass,
   investmentBarFillClass,
   isLightMode,
+  includeBenefits,
   text,
   bankBalanceTotal,
   sortedBankAccounts,
@@ -59,6 +61,46 @@ function OverviewPage({
   cashFlowExpenseToIncomePct,
   upcomingBills,
 }) {
+  const displayedBankAccounts = useMemo(() => {
+    const isBenefitsCategory = (account) => String(account?.category || '').trim().toLowerCase() === 'benefits'
+    const isManualImportConnection = (account) => String(account?.connectionType || '').toUpperCase() === 'MANUAL_IMPORT'
+
+    const filteredAccounts = includeBenefits
+      ? sortedBankAccounts
+      : sortedBankAccounts.filter((account) => !isBenefitsCategory(account))
+
+    const groupedManualByInstitution = new Map()
+    const nonManualAccounts = []
+
+    filteredAccounts.forEach((account) => {
+      if (!isManualImportConnection(account)) {
+        nonManualAccounts.push(account)
+        return
+      }
+
+      const institutionName = getInstitutionName(account)
+      const institutionKey = institutionName.trim().toLowerCase()
+      const groupKey = institutionKey || `manual-${String(account?.id || 'unknown')}`
+      const currentGroup = groupedManualByInstitution.get(groupKey) || {
+        id: `manual-group-${groupKey}`,
+        name: institutionName,
+        marketingName: institutionName,
+        balance: 0,
+        accountCount: 0,
+        isManualGrouped: true,
+      }
+
+      currentGroup.balance += Number(account?.balance) || 0
+      currentGroup.accountCount += 1
+      groupedManualByInstitution.set(groupKey, currentGroup)
+    })
+
+    const groupedManualAccounts = Array.from(groupedManualByInstitution.values())
+
+    return [...nonManualAccounts, ...groupedManualAccounts]
+      .sort((first, second) => (Number(second?.balance) || 0) - (Number(first?.balance) || 0))
+  }, [includeBenefits, sortedBankAccounts])
+
   return (
     <>
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -72,7 +114,7 @@ function OverviewPage({
           <p className={`mt-2 px-4 font-display text-2xl font-bold tabular-nums ${primaryTextClass}`}>{formatMoney(bankBalanceTotal)}</p>
           <div className={`mt-3 border-t ${cardPrimaryDividerClass}`} />
           <div className="px-4 pt-4 pb-2 space-y-0">
-            {sortedBankAccounts.slice(0, 4).map((account, index) => (
+            {displayedBankAccounts.slice(0, 4).map((account, index) => (
               <div
                 key={account.id}
                 className={`flex items-center justify-between py-2.5 text-xs ${index > 0 ? `border-t ${cardSubtleDividerClass}` : ''}`}
@@ -94,9 +136,17 @@ function OverviewPage({
                     </span>
                   )}
                   <span>
-                    <p className={`text-sm ${primaryTextClass}`}>{getInstitutionName(account)}</p>
+                    <p className={`text-sm ${primaryTextClass}`}>
+                      {account?.isManualGrouped
+                        ? getInstitutionName(account)
+                        : getInstitutionName(account)}
+                    </p>
                     <p className={`text-xs ${secondaryTextClass}`}>
-                      {text.accountUnit} • {bankBalanceTotal > 0 ? ((Math.abs(Number(account.balance) || 0) / bankBalanceTotal) * 100).toFixed(1) : '0.0'}%
+                      {account?.isManualGrouped
+                        ? `${account.accountCount} ${account.accountCount === 1 ? 'account' : 'accounts'}`
+                        : text.accountUnit}
+                      {' • '}
+                      {bankBalanceTotal > 0 ? ((Math.abs(Number(account.balance) || 0) / bankBalanceTotal) * 100).toFixed(1) : '0.0'}%
                     </p>
                   </span>
                 </span>

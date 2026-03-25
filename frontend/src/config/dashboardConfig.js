@@ -1,5 +1,5 @@
 export const API_BASE = 'http://localhost:3000/api'
-export const APP_VERSION = 'Wallet Hub v1.2.0'
+export const APP_VERSION = 'Wallet Hub v1.3.0'
 export const DEV_SIGNATURE = 'Flamma Digital'
 
 export const DASHBOARD_ITEMS = {
@@ -58,6 +58,7 @@ export const COPY = {
     connectionsImportBackup: 'Import',
     connectionsActiveLabel: 'active',
     connectionsDeleteAllWalletsLabel: 'Remove all',
+    connectionsUpdateBalanceLabel: 'Update balance',
     connectionsSyncedToday: 'Today',
     connectionsSyncedYesterday: '1 day ago',
     connectionsSyncedDaysAgo: '{days} days ago',
@@ -110,7 +111,7 @@ export const COPY = {
     connectionsPhysicalWalletsLabel: 'Physical Wallets',
     connectionsPhysicalSubtitle: 'Track physical cash or manual balances.',
     connectionsPhysicalWalletNameLabel: 'Wallet Name',
-    connectionsPhysicalWalletNamePlaceholder: 'Pocket Money',
+    connectionsPhysicalWalletNamePlaceholder: 'ex.: Pocket, Mattress',
     connectionsPhysicalBalanceLabel: 'Current Balance',
     connectionsPhysicalAddedTransaction: 'Physical money added',
     connectionsPhysicalCategory: 'Physical wallet',
@@ -187,6 +188,7 @@ export const COPY = {
     flowFinancialHealthSavings: 'Savings',
     flowFinancialHealthDebt: 'Debt',
     flowFinancialHealthSpending: 'Spending',
+    flowFinancialHealthInvestments: 'Investments',
     flowNoExpenses: 'No expenses this month.',
     flowNoPending: 'No pending this month.',
     usedLabel: 'Used',
@@ -274,6 +276,7 @@ export const COPY = {
     connectionsImportBackup: 'Importar',
     connectionsActiveLabel: 'ativas',
     connectionsDeleteAllWalletsLabel: 'Remover todas',
+    connectionsUpdateBalanceLabel: 'Atualizar saldo',
     connectionsSyncedToday: 'Hoje',
     connectionsSyncedYesterday: '1 dia atrás',
     connectionsSyncedDaysAgo: '{days} dias atrás',
@@ -326,7 +329,7 @@ export const COPY = {
     connectionsPhysicalWalletsLabel: 'Carteiras físicas',
     connectionsPhysicalSubtitle: 'Acompanhe dinheiro físico ou saldos manuais.',
     connectionsPhysicalWalletNameLabel: 'Nome da carteira',
-    connectionsPhysicalWalletNamePlaceholder: 'Dinheiro da carteira',
+    connectionsPhysicalWalletNamePlaceholder: 'ex.: Bolso, Colchão',
     connectionsPhysicalBalanceLabel: 'Saldo atual',
     connectionsPhysicalAddedTransaction: 'Dinheiro físico adicionado',
     connectionsPhysicalCategory: 'Carteira física',
@@ -403,6 +406,7 @@ export const COPY = {
     flowFinancialHealthSavings: 'Poupança',
     flowFinancialHealthDebt: 'Dívidas',
     flowFinancialHealthSpending: 'Gastos',
+    flowFinancialHealthInvestments: 'Investimentos',
     flowNoExpenses: 'Sem despesas no mês.',
     flowNoPending: 'Sem pendências no mês.',
     usedLabel: 'Utilizado',

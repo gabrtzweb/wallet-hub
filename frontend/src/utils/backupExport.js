@@ -15,7 +15,7 @@ const STORAGE_KEYS = {
  */
 const getBackupData = () => {
   const backupData = {
-    version: '1.0.0',
+    version: '1.3.0',
     exportDate: new Date().toISOString(),
     data: {
       manualConnections: null,

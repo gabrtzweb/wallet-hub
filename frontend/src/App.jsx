@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import DashboardFooter from './components/DashboardFooter'
 import DashboardHeader from './components/DashboardHeader'
@@ -10,10 +10,13 @@ import ConnectionsPage from './pages/ConnectionsPage'
 import FlowPage from './pages/FlowPage'
 import HomePage from './pages/HomePage'
 import OverviewPage from './pages/OverviewPage'
+import { calculateFinancialHealthFromFinancialAccounts } from './utils/financialHealthCalculator'
 
 function Dashboard() {
   const [theme, setTheme] = useState(() => localStorage.getItem('wallet-hub-theme') || 'dark')
   const [language, setLanguage] = useState('pt')
+  const [includeBenefitsInOverview, setIncludeBenefitsInOverview] = useState(false)
+  const [includeBenefitsInFlow, setIncludeBenefitsInFlow] = useState(false)
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -89,7 +92,6 @@ function Dashboard() {
     institutionInvestments,
     isEvolutionCollapsed,
     setIsEvolutionCollapsed,
-    evolutionTotal,
     evolutionData,
     spendingByCategoryData,
     recentTransactions,
@@ -99,8 +101,6 @@ function Dashboard() {
     formatTransactionDate,
     monthlyIncome,
     monthlyExpenses,
-    flowMonthlyIncome,
-    flowMonthlyExpenses,
     cashFlowBarWidth,
     cashFlowExpenseToIncomePct,
     upcomingBills,
@@ -113,6 +113,112 @@ function Dashboard() {
     flowGroupedTransactions,
     lastSyncedText,
   } = useDashboardData({ language, text })
+
+  const isBenefitsCategory = useCallback((account) => {
+    return String(account?.category || '').trim().toLowerCase() === 'benefits'
+  }, [])
+
+  const benefitsBalanceTotal = useMemo(() => {
+    return sortedBankAccounts.reduce((sum, account) => {
+      if (!isBenefitsCategory(account)) return sum
+      return sum + (Number(account?.balance) || 0)
+    }, 0)
+  }, [isBenefitsCategory, sortedBankAccounts])
+
+  const overviewBankBalanceTotal = useMemo(() => {
+    if (includeBenefitsInOverview) return bankBalanceTotal
+    return bankBalanceTotal - benefitsBalanceTotal
+  }, [bankBalanceTotal, benefitsBalanceTotal, includeBenefitsInOverview])
+
+  const overviewEvolutionTotal = useMemo(() => {
+    return overviewBankBalanceTotal + creditUsedTotal
+  }, [creditUsedTotal, overviewBankBalanceTotal])
+
+  const overviewEvolutionData = useMemo(() => {
+    if (includeBenefitsInOverview) return evolutionData
+
+    return evolutionData.map((point) => ({
+      ...point,
+      value: Number(((Number(point?.value) || 0) - benefitsBalanceTotal).toFixed(2)),
+    }))
+  }, [benefitsBalanceTotal, evolutionData, includeBenefitsInOverview])
+
+  const benefitAccountIds = useMemo(() => {
+    return new Set(
+      sortedBankAccounts
+        .filter((account) => isBenefitsCategory(account))
+        .map((account) => String(account?.id || ''))
+        .filter(Boolean),
+    )
+  }, [isBenefitsCategory, sortedBankAccounts])
+
+  const flowGroupedTransactionsForView = useMemo(() => {
+    if (includeBenefitsInFlow) return flowGroupedTransactions
+
+    return flowGroupedTransactions
+      .map((group) => ({
+        ...group,
+        entries: group.entries.filter((transaction) => {
+          const accountId = String(transaction?.accountId || transaction?.account?.id || '')
+          if (benefitAccountIds.has(accountId)) return false
+
+          if (isBenefitsCategory(transaction?.account)) return false
+
+          const accountMeta = accountMetadataById.get(transaction?.accountId || transaction?.account?.id || null)
+          if (isBenefitsCategory(accountMeta)) return false
+
+          return true
+        }),
+      }))
+      .filter((group) => group.entries.length > 0)
+  }, [accountMetadataById, benefitAccountIds, flowGroupedTransactions, includeBenefitsInFlow, isBenefitsCategory])
+
+  const flowMonthlyIncomeForView = useMemo(() => {
+    return flowGroupedTransactionsForView.reduce((sum, group) => {
+      return sum + group.entries.reduce((groupSum, transaction) => {
+        if (transaction?.isTransfer) return groupSum
+        const amount = getNormalizedAmount(transaction)
+        return amount > 0 ? groupSum + amount : groupSum
+      }, 0)
+    }, 0)
+  }, [flowGroupedTransactionsForView, getNormalizedAmount])
+
+  const flowMonthlyExpensesForView = useMemo(() => {
+    return Math.abs(flowGroupedTransactionsForView.reduce((sum, group) => {
+      return sum + group.entries.reduce((groupSum, transaction) => {
+        if (transaction?.isTransfer) return groupSum
+        const amount = getNormalizedAmount(transaction)
+        return amount < 0 ? groupSum + amount : groupSum
+      }, 0)
+    }, 0))
+  }, [flowGroupedTransactionsForView, getNormalizedAmount])
+
+  const flowBankBalanceTotalForView = useMemo(() => {
+    if (includeBenefitsInFlow) return bankBalanceTotal
+    return bankBalanceTotal - benefitsBalanceTotal
+  }, [bankBalanceTotal, benefitsBalanceTotal, includeBenefitsInFlow])
+
+  const flowProjectedBankBalanceTotal = useMemo(() => {
+    return bankBalanceTotal - benefitsBalanceTotal
+  }, [bankBalanceTotal, benefitsBalanceTotal])
+
+  const flowAccountMetadataByIdForView = useMemo(() => {
+    if (includeBenefitsInFlow) return accountMetadataById
+
+    return new Map(
+      Array.from(accountMetadataById.entries()).filter(([, account]) => !isBenefitsCategory(account)),
+    )
+  }, [accountMetadataById, includeBenefitsInFlow, isBenefitsCategory])
+
+  const flowFinancialHealth = useMemo(() => {
+    return calculateFinancialHealthFromFinancialAccounts({
+      flowGroupedTransactions,
+      accountMetadataById,
+      getNormalizedAmount,
+      sortedCreditAccounts,
+      investmentsTotal,
+    })
+  }, [accountMetadataById, flowGroupedTransactions, getNormalizedAmount, sortedCreditAccounts, investmentsTotal])
 
   const hasLoadError = !loading && Boolean(error)
   const shouldLockDashboardView = hasLoadError && !isConnectionsView && !isHomeView
@@ -190,7 +296,24 @@ function Dashboard() {
       : isConnectionsView
         ? text.connectionsSubtitle
         : text.subtitle
+  const hasBenefitsAccounts = useMemo(() => {
+    return sortedBankAccounts.some((account) => isBenefitsCategory(account))
+  }, [isBenefitsCategory, sortedBankAccounts])
+
   const showPageHeader = !isHomeView && !shouldLockDashboardView
+  const showBenefitsToggle = (isOverviewView || isFlowView) && hasBenefitsAccounts
+  const includeBenefitsLabel = language === 'pt' ? 'Incluir Beneficios' : 'Include Benefits'
+  const includeBenefitsEnabled = isOverviewView ? includeBenefitsInOverview : includeBenefitsInFlow
+  const toggleBenefits = () => {
+    if (isOverviewView) {
+      setIncludeBenefitsInOverview((current) => !current)
+      return
+    }
+
+    if (isFlowView) {
+      setIncludeBenefitsInFlow((current) => !current)
+    }
+  }
 
   return (
     <main
@@ -226,9 +349,31 @@ function Dashboard() {
       <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 pb-8 pt-24 md:pb-10">
         <div className="flex-1">
           {showPageHeader && (
-            <header className="mb-5">
-              <h1 className={`font-display text-2xl font-bold tracking-tight ${isLightMode ? 'text-[#080a0f]' : 'text-white'}`}>{pageTitle}</h1>
-              <p className={`mt-1 text-sm ${isLightMode ? 'text-zinc-600' : 'text-white/40'}`}>{pageSubtitle}</p>
+            <header className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <h1 className={`font-display text-2xl font-bold tracking-tight ${isLightMode ? 'text-[#080a0f]' : 'text-white'}`}>{pageTitle}</h1>
+                <p className={`mt-1 text-sm ${isLightMode ? 'text-zinc-600' : 'text-white/40'}`}>{pageSubtitle}</p>
+              </div>
+
+              {showBenefitsToggle && (
+                <button
+                  type="button"
+                  onClick={toggleBenefits}
+                  className={`inline-flex h-8 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition ${
+                    includeBenefitsEnabled
+                      ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.15)] text-[#60a5fa]'
+                      : isLightMode
+                        ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]'
+                        : 'border-zinc-700 bg-zinc-900/70 text-zinc-300 hover:border-[#1f67ff] hover:text-[#60a5fa]'
+                  }`}
+                  aria-pressed={includeBenefitsEnabled}
+                >
+                  <span>{includeBenefitsLabel}</span>
+                  <span className={`rounded-md px-1.5 py-0.5 text-[10px] leading-none ${includeBenefitsEnabled ? 'bg-[#1f67ff] text-white' : isLightMode ? 'bg-zinc-200 text-zinc-700' : 'bg-zinc-800 text-zinc-300'}`}>
+                    {includeBenefitsEnabled ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+              )}
             </header>
           )}
 
@@ -279,8 +424,9 @@ function Dashboard() {
                       investmentBarTrackClass={investmentBarTrackClass}
                       investmentBarFillClass={investmentBarFillClass}
                       isLightMode={isLightMode}
+                      includeBenefits={includeBenefitsInOverview}
                       text={text}
-                      bankBalanceTotal={bankBalanceTotal}
+                      bankBalanceTotal={overviewBankBalanceTotal}
                       sortedBankAccounts={sortedBankAccounts}
                       formatMoney={formatMoney}
                       creditUsedTotal={creditUsedTotal}
@@ -296,8 +442,8 @@ function Dashboard() {
                       institutionInvestments={institutionInvestments}
                       isEvolutionCollapsed={isEvolutionCollapsed}
                       setIsEvolutionCollapsed={setIsEvolutionCollapsed}
-                      evolutionTotal={evolutionTotal}
-                      evolutionData={evolutionData}
+                      evolutionTotal={overviewEvolutionTotal}
+                      evolutionData={overviewEvolutionData}
                       spendingByCategoryData={spendingByCategoryData}
                       categoryChartColors={categoryChartColors}
                       recentTransactions={recentTransactions}
@@ -325,21 +471,24 @@ function Dashboard() {
                       primaryTextClass={primaryTextClass}
                       secondaryTextClass={secondaryTextClass}
                       flowMonthLabel={flowMonthLabel}
-                      monthlyIncome={flowMonthlyIncome}
-                      monthlyExpenses={flowMonthlyExpenses}
+                      monthlyIncome={flowMonthlyIncomeForView}
+                      monthlyExpenses={flowMonthlyExpensesForView}
                       canGoToPreviousFlowMonth={canGoToPreviousFlowMonth}
                       canGoToNextFlowMonth={canGoToNextFlowMonth}
                       goToPreviousFlowMonth={goToPreviousFlowMonth}
                       goToNextFlowMonth={goToNextFlowMonth}
                       formatMoney={formatMoney}
                       text={text}
-                      flowGroupedTransactions={flowGroupedTransactions}
+                      flowGroupedTransactions={flowGroupedTransactionsForView}
                       getNormalizedAmount={getNormalizedAmount}
-                      accountMetadataById={accountMetadataById}
-                      bankBalanceTotal={bankBalanceTotal}
+                      accountMetadataById={flowAccountMetadataByIdForView}
+                      bankBalanceTotal={flowBankBalanceTotalForView}
+                      projectedBankBalanceTotal={flowProjectedBankBalanceTotal}
                       categoryChartColors={categoryChartColors}
                       creditUsedTotal={creditUsedTotal}
                       creditLimitTotal={creditLimitTotal}
+                      financialHealth={flowFinancialHealth}
+                      investmentsTotal={investmentsTotal}
                     />
                   }
                 />

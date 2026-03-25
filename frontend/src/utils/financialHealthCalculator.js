@@ -1,3 +1,5 @@
+import { getCreditLimit } from '../config/dashboardConfig'
+
 /**
  * Calculates financial health metrics and overall score.
  * 
@@ -5,15 +7,17 @@
  * @param {number} monthlyExpenses - Total expenses for the current month (absolute value)
  * @param {number} creditUsedTotal - Total credit card balance currently used
  * @param {number} creditLimitTotal - Total credit card limit across all accounts
+ * @param {number} investmentsTotal - Total investments value
  * 
  * @returns {object} - Financial health object with:
  *  - overallScore: 0-100 (rounded integer)
  *  - spending: { score: 0-100, status: 'Good'|'Watch'|'Danger', ratio: number }
  *  - debt: { score: 0-100, status: 'Low'|'Medium'|'High', ratio: number }
  *  - savings: { score: 0-100, status: 'Good'|'Fair'|'Poor', ratio: number }
+ *  - investments: { score: 0-100, status: 'Good'|'Fair'|'Poor', ratio: number }
  *  - color: '#22c55e'|'#f59e0b'|'#ef4444' (green, amber, red)
  */
-export function calculateFinancialHealth(monthlyIncome = 0, monthlyExpenses = 0, creditUsedTotal = 0, creditLimitTotal = 0) {
+export function calculateFinancialHealth(monthlyIncome = 0, monthlyExpenses = 0, creditUsedTotal = 0, creditLimitTotal = 0, investmentsTotal = 0) {
   const income = Math.max(0, monthlyIncome)
   const expenses = Math.max(0, monthlyExpenses)
 
@@ -79,9 +83,34 @@ export function calculateFinancialHealth(monthlyIncome = 0, monthlyExpenses = 0,
     savingsScore = 0
   }
 
+  // === INVESTMENTS METRIC ===
+  // Coverage Ratio = Investments / Monthly expenses
+  // Status: >= 6 months is "Good", >= 3 months is "Fair", else "Poor"
+  let investmentCoverageRatio = 0
+  let investmentsStatus = 'Poor'
+  let investmentsScore = 0
+
+  const normalizedInvestmentsTotal = Math.max(0, Number(investmentsTotal) || 0)
+  if (expenses > 0) {
+    investmentCoverageRatio = normalizedInvestmentsTotal / expenses
+  } else if (normalizedInvestmentsTotal > 0) {
+    investmentCoverageRatio = 6
+  }
+
+  if (investmentCoverageRatio >= 6) {
+    investmentsStatus = 'Good'
+    investmentsScore = 100
+  } else if (investmentCoverageRatio >= 3) {
+    investmentsStatus = 'Fair'
+    investmentsScore = Math.min(100, 60 + ((investmentCoverageRatio - 3) / 3) * 40)
+  } else {
+    investmentsStatus = 'Poor'
+    investmentsScore = Math.max(0, (investmentCoverageRatio / 3) * 60)
+  }
+
   // === OVERALL SCORE ===
-  // Average of the 3 score contributions (rounded to nearest integer)
-  const overallScore = Math.round((spendingScore + debtScore + savingsScore) / 3)
+  // Average of the 4 score contributions (rounded to nearest integer)
+  const overallScore = Math.round((spendingScore + debtScore + savingsScore + investmentsScore) / 4)
 
   // === COLOR MAPPING ===
   // >= 80 (Green), 50-79 (Yellow/Orange), < 50 (Red)
@@ -109,6 +138,74 @@ export function calculateFinancialHealth(monthlyIncome = 0, monthlyExpenses = 0,
       status: savingsStatus,
       ratio: savingsRatio,
     },
+    investments: {
+      score: Math.round(investmentsScore),
+      status: investmentsStatus,
+      ratio: investmentCoverageRatio,
+    },
     color,
   }
+}
+
+const normalizeCategory = (value) => String(value || '').trim().toLowerCase()
+
+const isBenefitsCategory = (account) => normalizeCategory(account?.category) === 'benefits'
+
+/**
+ * Aggregates health inputs from accounts that represent real banking life.
+ * Benefits are always excluded. Financial and uncategorized accounts are included.
+ */
+export function calculateFinancialHealthFromFinancialAccounts({
+  flowGroupedTransactions = [],
+  accountMetadataById = new Map(),
+  getNormalizedAmount,
+  sortedCreditAccounts = [],
+  investmentsTotal = 0,
+} = {}) {
+  const resolveAccount = (transaction) => {
+    const accountId = transaction?.accountId || transaction?.account?.id || null
+    return accountMetadataById.get(accountId) || transaction?.account || null
+  }
+
+  const { monthlyIncome, monthlyExpenses } = flowGroupedTransactions.reduce(
+    (totals, group) => {
+      const nextTotals = group.entries.reduce((groupTotals, transaction) => {
+        if (transaction?.isTransfer) return groupTotals
+
+        const account = resolveAccount(transaction)
+        if (isBenefitsCategory(account)) return groupTotals
+
+        const amount = typeof getNormalizedAmount === 'function'
+          ? getNormalizedAmount(transaction)
+          : Number(transaction?.amount) || 0
+
+        if (amount > 0) {
+          return { ...groupTotals, monthlyIncome: groupTotals.monthlyIncome + amount }
+        }
+
+        if (amount < 0) {
+          return { ...groupTotals, monthlyExpenses: groupTotals.monthlyExpenses + Math.abs(amount) }
+        }
+
+        return groupTotals
+      }, totals)
+
+      return nextTotals
+    },
+    { monthlyIncome: 0, monthlyExpenses: 0 },
+  )
+
+  const { creditUsedTotal, creditLimitTotal } = sortedCreditAccounts.reduce(
+    (totals, account) => {
+      if (isBenefitsCategory(account)) return totals
+
+      return {
+        creditUsedTotal: totals.creditUsedTotal + Math.abs(Number(account?.balance) || 0),
+        creditLimitTotal: totals.creditLimitTotal + (Number(getCreditLimit(account)) || 0),
+      }
+    },
+    { creditUsedTotal: 0, creditLimitTotal: 0 },
+  )
+
+  return calculateFinancialHealth(monthlyIncome, monthlyExpenses, creditUsedTotal, creditLimitTotal, investmentsTotal)
 }
