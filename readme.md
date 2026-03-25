@@ -40,7 +40,7 @@ Data flow:
 4. Frontend computes view metrics and renders cards/charts/lists.
 5. Frontend logo resolver requests `/api/logo-proxy?domain=...` for institution logos.
 
-## Pluggy Resources
+Pluggy Resources:
 
 - Meu Pluggy: `https://meu.pluggy.ai/`
 - Pluggy Dashboard: `https://dashboard.pluggy.ai/`
