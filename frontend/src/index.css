@@ -1,3 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
 /* Make default calendar icon match app theme */
 body.light input[type="date"]::-webkit-calendar-picker-indicator {
   filter: none;
@@ -11,11 +16,6 @@ body.dark input[type="date"]::-webkit-calendar-picker-indicator {
 body.dark input[type="date"]::-moz-calendar-picker-indicator {
   filter: invert(1) brightness(2);
 }
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   html {
@@ -58,8 +58,4 @@ body.dark input[type="date"]::-moz-calendar-picker-indicator {
 .transaction-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #23272f 10%, #60a5fa 90%);
 }
-/* Firefox */
-.transaction-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #3b82f6 #23272f;
-}
+/* Firefox uses native scrollbar styling as graceful fallback. */

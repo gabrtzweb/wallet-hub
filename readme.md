@@ -2,6 +2,9 @@
 
 Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
 
+| ![Overview Desktop](docs/overview-Macbook-Air.webp) | ![Overview Mobile](docs/overview-iPhone-14.webp) |
+| --- | --- |
+
 ## Overview
 
 - Consolidated financial dashboard with real account data.
@@ -14,44 +17,20 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
   - `/connections` Data Passport
 - Localized UI (`PT`/`EN`) with `dark` and `light` themes.
 
-## What This Version Includes
+## Core Features
 
-- Physical wallet and manual CSV connection support with account categorization (`Financial` and `Benefits`).
-- Backup and restore for credentials and manual data via JSON.
-- Flow page enhancements:
-	- Benefits include/exclude toggle scoped per page.
-	- Projected Balance logic that always excludes Benefits balances.
-	- Financial Health card with 4 metrics (`Savings`, `Debt`, `Spending`, `Investments`).
-	- Transfers excluded from income/expense metric totals.
-- Overview improvements for grouped manual accounts and cleaner account count display.
-- Connections improvements including bulk remove all connections action.
-- Dynamic institution logo resolution with backend logo proxy endpoint for local reliability.
+- **Open Finance Integration:** Read-only bank, credit, and investment sync via Pluggy (BYOK).
+- **Smart Manual Imports:** Support for physical wallets and CSV imports for non-Open Finance accounts (e.g., Pluxee/Sodexo benefits).
+- **Intelligent Parsing:** Automatically identifies Internal Transfers vs. actual Expenses/Incomes to prevent double-counting in cash flow metrics.
+- **Benefits Toggle:** Isolate consumable benefits from your core financial wealth with a global UI toggle.
+- **Financial Health:** Real-time metrics evaluating spending, debt, and savings strictly based on liquid banking assets.
+- **Local First & Secure:** All credentials and manual data are stored locally in the browser (`localStorage`) with full Export/Import JSON backup capabilities.
+- **Dynamic Logos:** Backend proxy endpoint to reliably resolve institution logos without CORS issues.
 
-## Latest Mockups
+## Tech Stack
 
-| Desktop | Mobile |
-| --- | --- |
-| ![Overview Desktop](docs/overview-Macbook-Air.webp) | ![Overview Mobile](docs/overview-iPhone-14.webp) |
-
-## Pluggy Resources
-
-- Meu Pluggy: `https://meu.pluggy.ai/`
-- Pluggy Dashboard: `https://dashboard.pluggy.ai/`
-- Meu Pluggy GitHub repo: `https://github.com/pluggyai/meu-pluggy`
-
-## Current Status
-
-Completed:
-
-- Real routing with modular pages (`Overview`, `Flow`, `Assets`, `Connections`).
-- Data hook extraction and shared config/copy organization.
-- Monthly flow normalization aligned with Pluggy behavior.
-- Responsive header improvements (mobile hamburger, icon-only controls on mobile).
-- Mobile and desktop footer refinements.
-- Flow page redesign with summary cards and dynamic category bars.
-- Financial Health calculation utility (`frontend/src/utils/financialHealthCalculator.js`) integrated into Flow page.
-- Projected Balance card with bank vs credit breakdown and conditional positive/negative highlighting.
-- Logo proxy pipeline (`backend/api/logo-proxy`) with frontend logo fallback handling.
+- **Frontend:** React 19, Vite, React Router, Recharts, Lucide.
+- **Backend:** Node.js, Express, Pluggy SDK.
 
 ## Architecture
 
@@ -66,34 +45,11 @@ Data flow:
 4. Frontend computes view metrics and renders cards/charts/lists.
 5. Frontend logo resolver requests `/api/logo-proxy?domain=...` for institution logos.
 
-## Tech Stack
+## Pluggy Resources
 
-- Frontend: React 19, Vite, React Router, Recharts, Lucide.
-- Backend: Node.js, Express, Pluggy SDK, CORS, dotenv.
-
-## Project Structure
-
-```text
-wallet-hub/
-	backend/
-		server.js
-		package.json
-	frontend/
-		src/
-			App.jsx
-			components/
-			config/
-			hooks/
-			pages/
-			utils/
-				logoResolver.js
-				backupExport.js (Export/Import backup utilities)
-				manualConnections.js
-				pluggyCredentials.js
-			assets/
-		package.json
-	readme.md
-```
+- Meu Pluggy: `https://meu.pluggy.ai/`
+- Pluggy Dashboard: `https://dashboard.pluggy.ai/`
+- Meu Pluggy GitHub repo: `https://github.com/pluggyai/meu-pluggy`
 
 ## Getting Started
 
@@ -107,7 +63,7 @@ npm run install:all
 
 ### 2) Environment
 
-No backend `.env` file is required. Pluggy credentials are provided by the user at runtime (BYOK) in the UI (`Connections` page).
+Pluggy credentials are provided by the user at runtime (BYOK) in the UI (`Connections` page).
 
 ### 3) Start Development
 
@@ -169,71 +125,16 @@ The frontend stores these credentials in browser `localStorage` and injects them
 - Manual wallet transaction history
 - Pluggy API credentials (Client ID, Client Secret, Item IDs)
 
-## Available Scripts
-
-Root (`package.json`):
-
-- `npm run install:all`: installs backend and frontend dependencies.
-- `npm run dev`: starts backend and frontend together.
-- `npm run stop`: stops backend/frontend dev servers on ports `3000` and `5173`.
-- `npm run restart`: runs `stop` and starts both servers again.
-
-Backend (`backend/package.json`):
-
-- `npm run dev`: starts the API server.
-- `npm start`: starts the API server.
-
-Frontend (`frontend/package.json`):
-
-- `npm run dev`: starts Vite dev server.
-- `npm run build`: production build.
-- `npm run preview`: preview built app.
-- `npm run lint`: run ESLint.
-
-## API
-
-Main endpoint:
-
-- `GET /api/dashboard-data`
-- `GET /api/logo-proxy?domain={domain}`
-
-Required headers for Pluggy requests:
-
-- `x-pluggy-client-id`
-- `x-pluggy-client-secret`
-- `x-pluggy-item-ids`
-
-Returns consolidated arrays for:
-
-- `bankAccounts`
-- `creditCards`
-- `investments`
-- `transactions`
-- `balanceEvolution`
-- `failedItems`
-
-Logo proxy behavior:
-
-- Proxies logo requests server-side to avoid browser restrictions on third-party logo hosts during local development.
-- Returns image response when found.
-- Returns `404` when logo is unavailable, allowing frontend fallback handling.
-
 ## Security Notes
 
-- Do not commit `.env` files.
-- Keep Pluggy credentials local.
-- Integration is read-only by design in this project.
+- Bring Your Own Key: API keys are never stored on the server.
+- Read-Only: The app only requests read permissions for financial data.
+- Local Storage: Keep your exported JSON backups safe, as they contain your API credentials and manual history.
 
 ## Roadmap
 
-- Expand manual connection support for non-Open Finance institutions
 - Encrypted backup storage option
 - Automated backup scheduling
-- Additional data visualizations and analytics cards
 - Upcoming payments and bill tracking features
 - Automated tests for data normalization and financial totals
 - Further UI/UX refinements and accessibility improvements
-
-## Version
-
-- Current app version: `Wallet Hub v1.3.0`
