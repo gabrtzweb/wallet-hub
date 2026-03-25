@@ -27,15 +27,10 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
 - **Local First & Secure:** All credentials and manual data are stored locally in the browser (`localStorage`) with full Export/Import JSON backup capabilities.
 - **Dynamic Logos:** Backend proxy endpoint to reliably resolve institution logos without CORS issues.
 
-## Tech Stack
+## Tech Stack and Architecture
 
-- **Frontend:** React 19, Vite, React Router, Recharts, Lucide.
-- **Backend:** Node.js, Express, Pluggy SDK.
-
-## Architecture
-
-- `frontend/`: React + Vite SPA.
-- `backend/`: Node.js + Express API proxy for Pluggy.
+- `frontend/`: React 19, Vite, React Router, Recharts, Lucide.
+- `backend/`: Node.js, Express, Pluggy SDK.
 
 Data flow:
 
