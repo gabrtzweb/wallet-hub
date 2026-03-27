@@ -93,22 +93,26 @@ Stops both servers and starts them again in one command.
 1. Open `/connections`.
 2. Click `+ Nova conexão` or `+ New connection`.
 3. Fill in:
-	- Pluggy Client ID
-	- Pluggy Client Secret
-	- Item IDs (comma or line separated)
-4. Save credentials.
+
+- Pluggy Client ID
+- Pluggy Client Secret
+- Item IDs (comma or line separated)
+
+1. Save credentials.
 
 The frontend stores these credentials in browser `localStorage` and injects them into backend request headers.
 
 ### 6) Data Backup & Restore
 
 **Export Backup:**
+
 1. Navigate to `/connections` page.
 2. Click the `Export` button in the connections header.
 3. A JSON file (`wallet-hub-backup-YYYY-MM-DD.json`) downloads automatically.
 4. Store this file safely for future recovery.
 
 **Import Backup:**
+
 1. Navigate to `/connections` page.
 2. Click the `Import` button in the connections header.
 3. Select a previously exported JSON backup file.
@@ -116,6 +120,7 @@ The frontend stores these credentials in browser `localStorage` and injects them
 5. The app automatically reloads to display restored data.
 
 **Backed-up Data:**
+
 - Manual wallet connections and balances
 - Manual wallet transaction history
 - Pluggy API credentials (Client ID, Client Secret, Item IDs)
