@@ -265,7 +265,7 @@ function FlowPage({
   const nextFlowMonthName = useMemo(() => {
     const now = new Date()
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    const formattedMonth = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+    const formattedMonth = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-GB', {
       month: 'long',
     }).format(nextMonth)
 

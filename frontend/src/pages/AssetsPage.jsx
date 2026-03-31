@@ -17,7 +17,7 @@ function AssetsPage({
   const [expandedById, setExpandedById] = useState({})
 
   const dateFormatter = useMemo(
-    () => new Intl.DateTimeFormat(text.overview === 'Visão geral' ? 'pt-BR' : 'en-US', {
+    () => new Intl.DateTimeFormat(text.overview === 'Visão geral' ? 'pt-BR' : 'en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

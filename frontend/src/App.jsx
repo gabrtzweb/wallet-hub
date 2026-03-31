@@ -6,7 +6,7 @@ import noiseTexture from './assets/noise.png'
 import { COPY } from './config/dashboardConfig'
 import useDashboardData from './hooks/useDashboardData'
 import AssetsPage from './pages/AssetsPage'
-import ConnectionsPage from './pages/ConnectionsPage'
+import SettingsPage from './pages/SettingsPage'
 import FlowPage from './pages/FlowPage'
 import HomePage from './pages/HomePage'
 import OverviewPage from './pages/OverviewPage'
@@ -47,7 +47,7 @@ function Dashboard() {
     } else if (path === '/assets') {
       dynamicTitle = `Dashboard - ${text.navAssets}`
       dynamicDescription = text.assetsSubtitle
-    } else if (path === '/connections') {
+    } else if (path === '/settings') {
       dynamicTitle = `Dashboard - ${text.navConnections}`
       dynamicDescription = text.connectionsSubtitle
     }
@@ -70,7 +70,7 @@ function Dashboard() {
   const isOverviewView = location.pathname === '/overview'
   const isFlowView = location.pathname === '/flow'
   const isAssetsView = location.pathname === '/assets'
-  const isConnectionsView = location.pathname === '/connections'
+  const isSettingsView = location.pathname === '/settings'
 
   const {
     loading,
@@ -221,7 +221,13 @@ function Dashboard() {
   }, [accountMetadataById, flowGroupedTransactions, getNormalizedAmount, sortedCreditAccounts, investmentsTotal])
 
   const hasLoadError = !loading && Boolean(error)
-  const shouldLockDashboardView = hasLoadError && !isConnectionsView && !isHomeView
+  const hasAnyDashboardData =
+    sortedBankAccounts.length > 0 ||
+    sortedCreditAccounts.length > 0 ||
+    investments.length > 0 ||
+    transactions.length > 0
+  const shouldShowDashboardUnavailable = hasLoadError && !hasAnyDashboardData
+  const shouldLockDashboardView = shouldShowDashboardUnavailable && !isSettingsView && !isHomeView
 
   const topCardTitleClass = isLightMode
     ? 'text-xs font-semibold uppercase tracking-wider text-zinc-600'
@@ -242,9 +248,10 @@ function Dashboard() {
     : 'inline-flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900/70 px-2 text-xs font-medium text-[#e9f0ff] transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white md:w-auto md:px-2.5'
   const themeToggleClass = `${headerControlBaseClass} gap-1.5`
   const languageWrapperClass = `${headerControlBaseClass} gap-1.5`
-  const refreshButtonClass = isLightMode
-    ? 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#1f67ff] bg-[#1f67ff] px-2 text-xs font-semibold text-white transition hover:brightness-95 md:w-auto md:px-3'
-    : 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#1f67ff] bg-[#1f67ff] px-2 text-xs font-semibold text-white transition hover:brightness-110 md:w-auto md:px-3'
+  const refreshButtonClass = headerControlBaseClass
+  const profileButtonClass = isLightMode
+    ? 'inline-flex h-8 items-center gap-2 rounded-lg bg-white px-2.5 text-xs font-medium text-zinc-800 transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white'
+    : 'inline-flex h-8 items-center gap-2 rounded-lg bg-zinc-900/70 px-2.5 text-xs font-medium text-[#e9f0ff] transition hover:bg-[rgba(31,103,255,0.75)] hover:text-white'
   const investmentToggleWrapperClass = isLightMode
     ? 'inline-flex items-center rounded-lg bg-white p-0.5'
     : 'inline-flex items-center rounded-lg bg-zinc-900/70 p-0.5'
@@ -286,14 +293,14 @@ function Dashboard() {
     ? text.flowTitle
     : isAssetsView
       ? text.assetsTitle
-      : isConnectionsView
+      : isSettingsView
         ? text.connectionsTitle
         : text.overview
   const pageSubtitle = isFlowView
     ? text.flowSubtitle
     : isAssetsView
       ? text.assetsSubtitle
-      : isConnectionsView
+      : isSettingsView
         ? text.connectionsSubtitle
         : text.subtitle
   const hasBenefitsAccounts = useMemo(() => {
@@ -336,7 +343,6 @@ function Dashboard() {
         isOverviewView={isOverviewView}
         isFlowView={isFlowView}
         isAssetsView={isAssetsView}
-        isConnectionsView={isConnectionsView}
         themeToggleClass={themeToggleClass}
         setTheme={setTheme}
         languageWrapperClass={languageWrapperClass}
@@ -344,6 +350,7 @@ function Dashboard() {
         setLanguage={setLanguage}
         refreshButtonClass={refreshButtonClass}
         loadDashboard={loadDashboard}
+        profileButtonClass={profileButtonClass}
       />
 
       <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 pb-8 pt-24 md:pb-10">
@@ -386,13 +393,13 @@ function Dashboard() {
             </div>
           )}
 
-          {hasLoadError && !isConnectionsView && !isHomeView && (
+          {shouldShowDashboardUnavailable && !isSettingsView && !isHomeView && (
             <div className="mx-auto w-full max-w-2xl pt-8">
               <div className={`${glassCardClass} border-rose-500/30 bg-rose-500/10 p-7 text-center text-rose-100`}>
                 <p className="text-lg font-semibold">{text.dashboardUnavailable}</p>
                 <p className="mt-2 text-sm text-rose-200/90">{text.dashboardUnavailableInstruction}</p>
                 <Link
-                  to="/connections"
+                  to="/settings"
                   className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-white/90 px-5 text-sm font-semibold text-rose-900 transition hover:bg-white"
                 >
                   {text.homePrimaryCta}
@@ -510,14 +517,15 @@ function Dashboard() {
                   }
                 />
                 <Route
-                  path="/connections"
+                  path="/settings"
                   element={
-                    <ConnectionsPage
+                    <SettingsPage
                       glassCardClass={glassCardClass}
                       cardSubtleDividerClass={cardSubtleDividerClass}
                       isLightMode={isLightMode}
                       primaryTextClass={primaryTextClass}
                       secondaryTextClass={secondaryTextClass}
+                      language={language}
                       text={text}
                       bankAccounts={sortedBankAccounts}
                       creditAccounts={sortedCreditAccounts}
@@ -528,6 +536,7 @@ function Dashboard() {
                     />
                   }
                 />
+                <Route path="/connections" element={<Navigate to="/settings" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>

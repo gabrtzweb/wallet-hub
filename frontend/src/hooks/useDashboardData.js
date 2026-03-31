@@ -345,7 +345,7 @@ function useDashboardData({ language, text }) {
 
       let dueDateLabel = null
       if (parsedDueDate && !Number.isNaN(parsedDueDate.getTime())) {
-        dueDateLabel = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+        dueDateLabel = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-GB', {
           day: '2-digit',
           month: '2-digit',
         }).format(parsedDueDate)
@@ -372,14 +372,14 @@ function useDashboardData({ language, text }) {
     if (!value) return '--'
     const parsedDate = new Date(value)
     if (Number.isNaN(parsedDate.getTime())) return '--'
-    return new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+    return new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-GB', {
       day: '2-digit',
       month: '2-digit',
     }).format(parsedDate)
   }, [language])
 
   const flowMonthLabel = useMemo(() => {
-    const label = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+    const label = new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-GB', {
       month: 'long',
       year: 'numeric',
     }).format(selectedFlowMonth)
@@ -493,7 +493,7 @@ function useDashboardData({ language, text }) {
       if (!grouped.has(dayKey)) {
         grouped.set(dayKey, {
           day: dayKey,
-          weekday: new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', { weekday: 'long' }).format(parsedDate),
+          weekday: new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-GB', { weekday: 'long' }).format(parsedDate),
           entries: [],
         })
       }
@@ -507,7 +507,7 @@ function useDashboardData({ language, text }) {
   const lastSyncedText = useMemo(() => {
     if (!lastSyncedAt) return text.notSyncedYet
 
-    return new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-US', {
+    return new Intl.DateTimeFormat(language === 'pt' ? 'pt-BR' : 'en-GB', {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',

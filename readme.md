@@ -1,6 +1,6 @@
 # Wallet Hub
 
-Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Connections pages.
+Wallet Hub is a personal Open Finance dashboard built with Pluggy data integration. It consolidates bank accounts, credit cards, investments, and transactions into a single interface with dedicated Overview, Flow, Assets, and Settings pages.
 
 | ![Overview Desktop](docs/overview-Macbook-Air.webp) | ![Overview Mobile](docs/overview-iPhone-14.webp) |
 | --- | --- |
@@ -14,17 +14,18 @@ Wallet Hub is a personal Open Finance dashboard built with Pluggy data integrati
   - `/overview` Overview
   - `/flow` Cash Flow
   - `/assets` Assets
-  - `/connections` Data Passport
+  - `/settings` Settings
 - Localized UI (`PT`/`EN`) with `dark` and `light` themes.
 
 ## Core Features
 
 - **Open Finance Integration:** Read-only bank, credit, and investment sync via Pluggy (BYOK).
-- **Smart Manual Imports:** Support for physical wallets and CSV imports for non-Open Finance accounts (e.g., Pluxee/Sodexo benefits).
+- **Smart Manual Imports:** Support for physical wallets and CSV imports for non-Open Finance accounts (e.g., Pluxee/Alelo benefits).
+- **User Profile in Settings:** Profile name/photo managed directly in the User Data card, with an account button behavior in the header.
 - **Intelligent Parsing:** Automatically identifies Internal Transfers vs. actual Expenses/Incomes to prevent double-counting in cash flow metrics.
 - **Benefits Toggle:** Isolate consumable benefits from your core financial wealth with a global UI toggle.
 - **Financial Health:** Real-time metrics evaluating spending, debt, and savings strictly based on liquid banking assets.
-- **Local First & Secure:** All credentials and manual data are stored locally in the browser (`localStorage`) with full Export/Import JSON backup capabilities.
+- **Local First & Secure:** Credentials, manual data, and user profile data are stored locally in the browser (`localStorage`) with full Export/Import JSON backup capabilities.
 - **Dynamic Logos:** Backend proxy endpoint to reliably resolve institution logos without CORS issues.
 
 ## Tech Stack and Architecture
@@ -58,7 +59,7 @@ npm run install:all
 
 ### 2) Environment
 
-Pluggy credentials are provided by the user at runtime (BYOK) in the UI (`Connections` page).
+Pluggy credentials are provided by the user at runtime (BYOK) in the UI (`Settings` page).
 
 ### 3) Start Development
 
@@ -90,7 +91,7 @@ Stops both servers and starts them again in one command.
 
 ### 5) BYOK Flow (Bring Your Own Key)
 
-1. Open `/connections`.
+1. Open `/settings`.
 2. Click `+ Nova conexão` or `+ New connection`.
 3. Fill in:
 
@@ -106,17 +107,17 @@ The frontend stores these credentials in browser `localStorage` and injects them
 
 **Export Backup:**
 
-1. Navigate to `/connections` page.
-2. Click the `Export` button in the connections header.
+1. Navigate to `/settings` page.
+2. In the `Data actions` card, click `Export`.
 3. A JSON file (`wallet-hub-backup-YYYY-MM-DD.json`) downloads automatically.
 4. Store this file safely for future recovery.
 
 **Import Backup:**
 
-1. Navigate to `/connections` page.
-2. Click the `Import` button in the connections header.
+1. Navigate to `/settings` page.
+2. In the `Data actions` card, click `Import`.
 3. Select a previously exported JSON backup file.
-4. Confirm the import — all data (manual connections, transactions, and API credentials) will be restored.
+4. Confirm the import — all data (manual connections, transactions, API credentials, and user profile) will be restored.
 5. The app automatically reloads to display restored data.
 
 **Backed-up Data:**
@@ -124,6 +125,7 @@ The frontend stores these credentials in browser `localStorage` and injects them
 - Manual wallet connections and balances
 - Manual wallet transaction history
 - Pluggy API credentials (Client ID, Client Secret, Item IDs)
+- User profile data (name and picture)
 
 ## Security Notes
 

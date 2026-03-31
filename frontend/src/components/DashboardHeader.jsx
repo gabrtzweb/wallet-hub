@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Compass, Languages, Menu, Moon, RefreshCw, Sun, X } from 'lucide-react'
 
 function DashboardHeader({
@@ -11,7 +11,6 @@ function DashboardHeader({
   isOverviewView,
   isFlowView,
   isAssetsView,
-  isConnectionsView,
   themeToggleClass,
   setTheme,
   languageWrapperClass,
@@ -19,8 +18,72 @@ function DashboardHeader({
   setLanguage,
   refreshButtonClass,
   loadDashboard,
+  profileButtonClass,
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [userProfile, setUserProfile] = useState({ name: '', photo: null })
+
+  const normalizeProfileName = (rawName) => {
+    const trimmed = String(rawName || '').trim()
+    if (!trimmed) return ''
+    if (trimmed.toLowerCase() === 'usuário' || trimmed.toLowerCase() === 'usuario') return ''
+    return trimmed
+  }
+
+  const getCompactProfileName = (fullName) => {
+    const parts = String(fullName || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+
+    if (parts.length === 0) return ''
+    if (parts.length === 1) return parts[0]
+    return `${parts[0]} ${parts[1][0].toUpperCase()}.`
+  }
+
+  // Load user profile from localStorage on mount
+  useEffect(() => {
+    const syncUserProfile = () => {
+      const savedProfile = localStorage.getItem('wallet_hub_user_profile')
+      if (!savedProfile) {
+        setUserProfile({ name: '', photo: null })
+        return
+      }
+
+      try {
+        const parsedProfile = JSON.parse(savedProfile)
+        setUserProfile({
+          name: normalizeProfileName(parsedProfile?.name),
+          photo: parsedProfile?.photo || null,
+        })
+      } catch {
+        setUserProfile({ name: '', photo: null })
+      }
+    }
+
+    syncUserProfile()
+    window.addEventListener('storage', syncUserProfile)
+    window.addEventListener('wallet-hub-user-profile-updated', syncUserProfile)
+
+    return () => {
+      window.removeEventListener('storage', syncUserProfile)
+      window.removeEventListener('wallet-hub-user-profile-updated', syncUserProfile)
+    }
+  }, [])
+
+  const getInitials = (fullName) => {
+    return String(fullName || '')
+      .trim()
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const compactProfileName = getCompactProfileName(userProfile?.name || '')
+  const initials = getInitials(userProfile?.name || '') || 'UN'
+  const greetingLabel = compactProfileName ? `${text.profileHello || 'Hello'} ${compactProfileName}` : (text.profileHello || 'Hello')
 
   const handleNavigate = (path) => {
     navigate(path)
@@ -32,7 +95,6 @@ function DashboardHeader({
   const mobileNavInactiveClass = isLightMode
     ? `${mobileNavButtonBase} text-zinc-700 hover:bg-[rgba(31,103,255,0.12)]`
     : `${mobileNavButtonBase} text-zinc-300 hover:bg-[rgba(31,103,255,0.22)]`
-
   return (
     <header className={headerGlassClass}>
       <div className="mx-auto w-full max-w-7xl px-6 py-2.5 md:py-3">
@@ -67,9 +129,6 @@ function DashboardHeader({
               <button onClick={() => navigate('/assets')} className={isAssetsView ? navActiveClass : navInactiveClass}>
                 {text.navAssets}
               </button>
-              <button onClick={() => navigate('/connections')} className={isConnectionsView ? navActiveClass : navInactiveClass}>
-                {text.navConnections}
-              </button>
             </nav>
           </div>
 
@@ -80,7 +139,6 @@ function DashboardHeader({
               aria-label={isLightMode ? text.darkMode : text.lightMode}
             >
               {isLightMode ? <Moon className="h-3.5 w-3.5 shrink-0" /> : <Sun className="h-3.5 w-3.5 shrink-0" />}
-              <span className="hidden leading-none md:inline">{isLightMode ? text.darkMode : text.lightMode}</span>
             </button>
 
             <button
@@ -89,16 +147,34 @@ function DashboardHeader({
               aria-label={language === 'pt' ? 'Switch language to English' : 'Trocar idioma para Português'}
             >
               <Languages className="h-3.5 w-3.5 shrink-0" />
-              <span className="hidden leading-none md:inline">{language === 'pt' ? 'EN' : 'PT'}</span>
             </button>
 
             <button
               onClick={loadDashboard}
-              className={`${refreshButtonClass} gap-1.5 md:gap-2`}
+              className={refreshButtonClass}
               aria-label={text.refresh}
             >
               <RefreshCw className="h-3.5 w-3.5 shrink-0" />
-              <span className="hidden md:inline">{text.refresh}</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/settings')}
+              className={profileButtonClass}
+              aria-label={text.profileButton || 'User profile'}
+              title={text.navConnections || 'Settings'}
+            >
+              {userProfile.photo ? (
+                <img
+                  src={userProfile.photo}
+                  alt={userProfile.name}
+                  className="h-6 w-6 rounded-full object-cover"
+                />
+              ) : (
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#1f67ff] text-[10px] font-semibold text-white">
+                  {initials}
+                </span>
+              )}
+              <span className="hidden whitespace-nowrap text-xs font-medium md:inline">{greetingLabel}</span>
             </button>
           </div>
         </div>
@@ -114,12 +190,10 @@ function DashboardHeader({
             <button onClick={() => handleNavigate('/assets')} className={isAssetsView ? mobileNavActiveClass : mobileNavInactiveClass}>
               {text.navAssets}
             </button>
-            <button onClick={() => handleNavigate('/connections')} className={isConnectionsView ? mobileNavActiveClass : mobileNavInactiveClass}>
-              {text.navConnections}
-            </button>
           </nav>
         )}
       </div>
+
     </header>
   )
 }

@@ -21,7 +21,7 @@ function HomePage({ isLightMode, text }) {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              to="/connections"
+              to="/settings"
               className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1f67ff] px-5 text-sm font-semibold text-white transition hover:brightness-110"
             >
               <span>{text.homePrimaryCta}</span>

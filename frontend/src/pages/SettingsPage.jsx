@@ -1,6 +1,6 @@
-import { useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CirclePlus, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Plus, TrendingUp, Trash2, Upload, Wallet, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CirclePlus, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Pencil, Plus, TrendingUp, Trash2, Upload, UserCircle2, Wallet, X } from 'lucide-react'
 import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 import { getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
 import { exportBackup, importBackup } from '../utils/backupExport'
@@ -20,14 +20,96 @@ import {
   toPhysicalWalletAccount,
 } from '../utils/manualConnections'
 
-const getTodayInputDate = () => new Date().toISOString().slice(0, 10)
+const getTodayInputDate = () => {
+  const now = new Date()
+  const day = String(now.getDate()).padStart(2, '0')
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const year = String(now.getFullYear())
+  return `${year}-${month}-${day}`
+}
+const CALENDAR_LOCALE = 'en-GB'
 
-function ConnectionsPage({
+const toYearMonthDay = (displayDate) => {
+  const raw = String(displayDate || '').trim()
+  if (!raw) return ''
+
+  const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (ymdMatch) {
+    return raw
+  }
+
+  const dmyMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!dmyMatch) return ''
+
+  const [, dayStr, monthStr, yearStr] = dmyMatch
+  const day = Number(dayStr)
+  const month = Number(monthStr)
+  const year = Number(yearStr)
+
+  const parsedDate = new Date(year, month - 1, day)
+  const isValid =
+    parsedDate.getFullYear() === year &&
+    parsedDate.getMonth() === month - 1 &&
+    parsedDate.getDate() === day
+
+  if (!isValid) return ''
+
+  return `${yearStr}-${monthStr}-${dayStr}`
+}
+
+const formatCalendarDate = (value, withYear = false) => {
+  if (!value) return '--'
+
+  const parsedDate = new Date(value)
+  if (Number.isNaN(parsedDate.getTime())) return '--'
+
+  const formatOptions = withYear
+    ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+    : { day: '2-digit', month: '2-digit' }
+
+  return new Intl.DateTimeFormat(CALENDAR_LOCALE, formatOptions).format(parsedDate)
+}
+
+const formatCalendarDateTime = (value) => {
+  if (!value) return '--'
+
+  const parsedDate = new Date(value)
+  if (Number.isNaN(parsedDate.getTime())) return '--'
+
+  return new Intl.DateTimeFormat(CALENDAR_LOCALE, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(parsedDate)
+}
+
+const getStoredUserProfile = () => {
+  try {
+    const rawProfile = localStorage.getItem('wallet_hub_user_profile')
+    if (!rawProfile) return { name: '', photo: null }
+
+    const parsed = JSON.parse(rawProfile)
+    const normalizedName = String(parsed?.name || '').trim()
+    return {
+      name: normalizedName.toLowerCase() === 'usuario' || normalizedName.toLowerCase() === 'usuário'
+        ? ''
+        : normalizedName,
+      photo: parsed?.photo || null,
+    }
+  } catch {
+    return { name: '', photo: null }
+  }
+}
+
+function SettingsPage({
   glassCardClass,
   cardSubtleDividerClass,
   isLightMode,
   primaryTextClass,
   secondaryTextClass,
+  language = 'pt',
   text,
   bankAccounts,
   creditAccounts,
@@ -41,8 +123,8 @@ function ConnectionsPage({
   const [connectionFlowStep, setConnectionFlowStep] = useState('selection')
   const [credentialsForm, setCredentialsForm] = useState(getPluggyCredentialsDraft())
   const [manualConnections, setManualConnections] = useState(getStoredManualConnections)
-  const [csvImportForm, setCsvImportForm] = useState({ institutionName: '', accountName: '', accountCategory: 'Benefícios', currentBalance: '' })
-  const [physicalWalletForm, setPhysicalWalletForm] = useState({ walletName: '', currentBalance: '' })
+  const [csvImportForm, setCsvImportForm] = useState({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+  const [physicalWalletForm, setPhysicalWalletForm] = useState({ walletName: '', currentBalance: '', date: getTodayInputDate() })
   const [credentialsError, setCredentialsError] = useState('')
   const [showClientSecret, setShowClientSecret] = useState(false)
   const [copiedField, setCopiedField] = useState('')
@@ -60,9 +142,121 @@ function ConnectionsPage({
   const [backupImportFeedback, setBackupImportFeedback] = useState('')
   const [backupImportFeedbackType, setBackupImportFeedbackType] = useState('')
   const [manualImportUpdateAccountId, setManualImportUpdateAccountId] = useState('')
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState([])
   const fileInputRef = useRef(null)
   const manualCsvFileInputRef = useRef(null)
   const manualImportUpdateFileInputRef = useRef(null)
+  const profilePhotoInputRef = useRef(null)
+  const profileNameInputRef = useRef(null)
+  const [userProfile, setUserProfile] = useState(getStoredUserProfile)
+  const [profileNameDraft, setProfileNameDraft] = useState(userProfile?.name || '')
+  const [profilePhotoDraft, setProfilePhotoDraft] = useState(userProfile?.photo || null)
+  const [profilePhotoError, setProfilePhotoError] = useState('')
+  const [isEditingProfileName, setIsEditingProfileName] = useState(false)
+  const [isViewDataOpen, setIsViewDataOpen] = useState(false)
+  const [storedDataPreview, setStoredDataPreview] = useState('')
+  const userInitials = useMemo(() => {
+    return String(profileNameDraft || userProfile?.name || '')
+      .trim()
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }, [profileNameDraft, userProfile])
+
+  const hasUnsavedProfileChanges = useMemo(() => {
+    const normalizedDraftName = String(profileNameDraft || '').trim()
+    const normalizedSavedName = String(userProfile?.name || '').trim()
+    const normalizedDraftPhoto = profilePhotoDraft || null
+    const normalizedSavedPhoto = userProfile?.photo || null
+
+    return normalizedDraftName !== normalizedSavedName || normalizedDraftPhoto !== normalizedSavedPhoto
+  }, [profileNameDraft, profilePhotoDraft, userProfile])
+
+  const getStoredDataSnapshot = () => {
+    const safeParse = (key) => {
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) return null
+        return JSON.parse(raw)
+      } catch {
+        return null
+      }
+    }
+
+    return {
+      generatedAt: new Date().toISOString(),
+      data: {
+        manualConnections: safeParse('wallet_hub_manual_connections'),
+        manualWalletTransactions: safeParse('wallet_hub_manual_wallet_transactions'),
+        pluggyCredentials: safeParse('wallet-hub-pluggy-credentials-v1'),
+        userProfile: safeParse('wallet_hub_user_profile'),
+      },
+    }
+  }
+
+  useEffect(() => {
+    const syncProfile = () => {
+      const profile = getStoredUserProfile()
+      setUserProfile(profile)
+      setProfileNameDraft(profile?.name || '')
+      setProfilePhotoDraft(profile?.photo || null)
+      setProfilePhotoError('')
+    }
+
+    window.addEventListener('storage', syncProfile)
+    window.addEventListener('wallet-hub-user-profile-updated', syncProfile)
+
+    return () => {
+      window.removeEventListener('storage', syncProfile)
+      window.removeEventListener('wallet-hub-user-profile-updated', syncProfile)
+    }
+  }, [])
+
+  const handleProfilePhotoChange = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfilePhotoError(text?.profilePhotoSizeError || 'File size must be less than 2MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (fileEvent) => {
+      setProfilePhotoDraft(fileEvent.target?.result || null)
+      setProfilePhotoError('')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveProfile = () => {
+    const nextProfile = {
+      name: String(profileNameDraft || '').trim(),
+      photo: profilePhotoDraft || null,
+    }
+
+    localStorage.setItem('wallet_hub_user_profile', JSON.stringify(nextProfile))
+    setUserProfile(nextProfile)
+    window.dispatchEvent(new Event('wallet-hub-user-profile-updated'))
+  }
+
+  const handleViewData = () => {
+    const snapshot = getStoredDataSnapshot()
+    setStoredDataPreview(JSON.stringify(snapshot, null, 2))
+    setSelectedConnectionItemId(null)
+    setExpandedManualAccountId(null)
+    setExpandedPluggyAccountId(null)
+    setIsManualTransactionFormOpen(false)
+    setManualTransactionError('')
+    setIsViewDataOpen(true)
+  }
+
+  const handleCloseViewData = () => {
+    setIsViewDataOpen(false)
+  }
 
   const manualWalletAccounts = useMemo(
     () => manualConnections.map((entry) => toPhysicalWalletAccount(entry)),
@@ -226,6 +420,16 @@ function ConnectionsPage({
     [creditAccounts, selectedConnectionItemId],
   )
 
+  const parsedStoredDataPreview = useMemo(() => {
+    if (!storedDataPreview) return null
+
+    try {
+      return JSON.parse(storedDataPreview)
+    } catch {
+      return null
+    }
+  }, [storedDataPreview])
+
   const selectedInvestments = useMemo(
     () => investments.filter((entry) => entry?.itemId === selectedConnectionItemId),
     [investments, selectedConnectionItemId],
@@ -262,8 +466,8 @@ function ConnectionsPage({
 
   const openCredentialsModal = () => {
     setCredentialsForm(getPluggyCredentialsDraft())
-    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios', currentBalance: '' })
-    setPhysicalWalletForm({ walletName: '', currentBalance: '' })
+    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+    setPhysicalWalletForm({ walletName: '', currentBalance: '', date: getTodayInputDate() })
     setCredentialsError('')
     setShowClientSecret(false)
     setCopiedField('')
@@ -273,8 +477,8 @@ function ConnectionsPage({
 
   const closeCredentialsModal = () => {
     setIsCredentialsModalOpen(false)
-    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios', currentBalance: '' })
-    setPhysicalWalletForm({ walletName: '', currentBalance: '' })
+    setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+    setPhysicalWalletForm({ walletName: '', currentBalance: '', date: getTodayInputDate() })
     setCredentialsError('')
     setShowClientSecret(false)
     setCopiedField('')
@@ -303,57 +507,130 @@ function ConnectionsPage({
     }
   }
 
-  const handleDeleteConnection = async () => {
-    if (!selectedConnectionItemId) return
+  const removeConnectionEntry = (entry) => {
+    if (!entry) return
 
-    // Handle deletion of the grouped Physical Wallet (which deletes all manual wallets)
-    if (selectedConnectionItemId === 'manual-wallets-group') {
-      if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão?')) {
-        return
-      }
-
+    if (entry?.itemId === 'manual-wallets-group' || entry?.connectionType === 'MANUAL_WALLET') {
       saveStoredManualConnections([])
       setManualConnections([])
-      setSelectedConnectionItemId(null)
-      setExpandedManualAccountId(null)
-      setIsManualTransactionFormOpen(false)
-      await onCredentialsSaved?.()
       return
     }
 
-    // Handle deletion of individual manual wallets (shouldn't happen now, but keeping for safety)
-    if (isManualWalletConnection(selectedConnection)) {
-      if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão?')) {
-        return
-      }
-
-      const nextManualConnections = manualConnections.filter((entry) => entry.itemId !== selectedConnectionItemId)
-      saveStoredManualConnections(nextManualConnections)
-      setManualConnections(nextManualConnections)
-      setSelectedConnectionItemId(null)
-      setExpandedManualAccountId(null)
-      setIsManualTransactionFormOpen(false)
-      await onCredentialsSaved?.()
+    if (isManualImportConnection(entry)) {
+      removeStoredManualImportConnection(entry?.itemId || entry?.id)
       return
     }
 
-    if (isManualImportConnection(selectedConnection)) {
-      if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão?')) {
-        return
-      }
+    removeStoredPluggyItemId(entry?.itemId)
+  }
 
-      removeStoredManualImportConnection(selectedConnectionItemId || selectedConnection?.id)
-      setSelectedConnectionItemId(null)
-      await onCredentialsSaved?.()
-      return
-    }
+  const resetSelectionMode = () => {
+    setIsSelectionMode(false)
+    setSelectedConnectionIds([])
+  }
 
+  const handleDeleteConnection = async () => {
+    if (!selectedConnection) return
     if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão dos seus item IDs?')) {
       return
     }
 
-    removeStoredPluggyItemId(selectedConnectionItemId)
+    removeConnectionEntry(selectedConnection)
     setSelectedConnectionItemId(null)
+    setExpandedManualAccountId(null)
+    setExpandedPluggyAccountId(null)
+    setIsManualTransactionFormOpen(false)
+    setManualTransactionError('')
+    await onCredentialsSaved?.()
+  }
+
+  const handleDeleteConnectionFromGrid = async (entry) => {
+    if (!entry) return
+    if (!window.confirm(text.connectionsDeleteConfirm || 'Deseja remover esta conexão dos seus item IDs?')) {
+      return
+    }
+
+    removeConnectionEntry(entry)
+    setSelectedConnectionIds((current) => current.filter((itemId) => itemId !== entry?.itemId))
+    await onCredentialsSaved?.()
+  }
+
+  const handleToggleConnectionSelection = (itemId) => {
+    if (!itemId) return
+
+    setSelectedConnectionIds((current) => {
+      if (current.includes(itemId)) {
+        return current.filter((value) => value !== itemId)
+      }
+
+      return [...current, itemId]
+    })
+  }
+
+  const handleSelectAllConnections = () => {
+    if (selectedConnectionIds.length === connections.length) {
+      setSelectedConnectionIds([])
+      return
+    }
+
+    setSelectedConnectionIds(connections.map((entry) => entry.itemId).filter(Boolean))
+  }
+
+  const handleDeleteSelectedConnections = async () => {
+    if (selectedConnectionIds.length === 0) return
+
+    if (!window.confirm(text.connectionsDeleteConfirmAll || 'Deseja remover as conexões selecionadas?')) {
+      return
+    }
+
+    connections
+      .filter((entry) => selectedConnectionIds.includes(entry.itemId))
+      .forEach((entry) => {
+        removeConnectionEntry(entry)
+      })
+
+    setSelectedConnectionItemId(null)
+    setExpandedManualAccountId(null)
+    setExpandedPluggyAccountId(null)
+    setIsManualTransactionFormOpen(false)
+    setManualTransactionError('')
+    resetSelectionMode()
+    await onCredentialsSaved?.()
+  }
+
+  const handleRemoveData = async () => {
+    if (!window.confirm(text.connectionsRemoveDataConfirm || 'Deseja remover todas as conexões e resetar os dados de perfil?')) {
+      return
+    }
+
+    saveStoredManualConnections([])
+    setManualConnections([])
+    clearStoredPluggyCredentials()
+    setCredentialsForm(getPluggyCredentialsDraft())
+    setCredentialsError('')
+    setShowClientSecret(false)
+    setCopiedField('')
+    setSelectedConnectionItemId(null)
+    setExpandedManualAccountId(null)
+    setExpandedPluggyAccountId(null)
+    setIsManualTransactionFormOpen(false)
+    setManualTransactionError('')
+    resetSelectionMode()
+
+    localStorage.removeItem('wallet_hub_manual_wallet_transactions')
+    localStorage.removeItem('wallet_hub_user_profile')
+    setUserProfile({ name: '', photo: null })
+    setProfileNameDraft('')
+    setProfilePhotoDraft(null)
+    setProfilePhotoError('')
+    window.dispatchEvent(new Event('wallet-hub-user-profile-updated'))
+
+    connections.forEach((entry) => {
+      if (isManualImportConnection(entry)) {
+        removeStoredManualImportConnection(entry?.itemId || entry?.id)
+      }
+    })
+
     await onCredentialsSaved?.()
   }
 
@@ -402,44 +679,16 @@ function ConnectionsPage({
     await onCredentialsSaved?.()
   }
 
-  const handleRemoveAllConnections = async () => {
-    if (connections.length === 0) return
-
-    const confirmLabel = text.connectionsDeleteConfirmAll || 'Deseja remover todas as conexoes?'
-    if (!window.confirm(confirmLabel)) {
-      return
-    }
-
-    saveStoredManualConnections([])
-    setManualConnections([])
-
-    connections.forEach((entry) => {
-      if (!isManualImportConnection(entry)) return
-      removeStoredManualImportConnection(entry?.itemId || entry?.id)
-    })
-
-    clearStoredPluggyCredentials()
-    setCredentialsForm(getPluggyCredentialsDraft())
-    setCredentialsError('')
-    setShowClientSecret(false)
-    setCopiedField('')
-    setSelectedConnectionItemId(null)
-    setExpandedManualAccountId(null)
-    setExpandedPluggyAccountId(null)
-    setIsManualTransactionFormOpen(false)
-    setManualTransactionError('')
-
-    await onCredentialsSaved?.()
-  }
-
   const handlePhysicalWalletSubmit = (event) => {
     event.preventDefault()
 
     const walletName = String(physicalWalletForm.walletName || '').trim()
     const currentBalanceRaw = String(physicalWalletForm.currentBalance || '').trim()
+    const selectedDate = String(physicalWalletForm.date || '').trim()
+    const selectedDateYmd = toYearMonthDay(selectedDate)
     const parsedBalance = Number(currentBalanceRaw)
 
-    if (!walletName || !currentBalanceRaw || Number.isNaN(parsedBalance)) {
+    if (!walletName || !currentBalanceRaw || Number.isNaN(parsedBalance) || !selectedDateYmd) {
       setCredentialsError(text.connectionsPhysicalValidationError || 'Fill Wallet Name and Current Balance.')
       return
     }
@@ -448,6 +697,7 @@ function ConnectionsPage({
       ? crypto.randomUUID()
       : `${Date.now()}`
 
+    const selectedDateIso = new Date(`${selectedDateYmd}T12:00:00`).toISOString()
     const nowIso = new Date().toISOString()
     const newConnection = {
       id,
@@ -457,7 +707,7 @@ function ConnectionsPage({
       marketingName: walletName,
       balance: parsedBalance,
       currency: 'BRL',
-      createdAt: nowIso,
+      createdAt: selectedDateIso,
       updatedAt: nowIso,
     }
 
@@ -479,7 +729,7 @@ function ConnectionsPage({
     setBackupImportFeedback(text.connectionsImportProcessing || 'Processing backup...')
     setBackupImportFeedbackType('loading')
 
-    const result = await importBackup(file)
+    const result = await importBackup(file, language)
 
     if (result.success) {
       setBackupImportFeedback(result.message)
@@ -556,10 +806,7 @@ function ConnectionsPage({
     const institutionName = String(csvImportForm.institutionName || '').trim()
     const accountName = String(csvImportForm.accountName || '').trim()
     const accountCategory = String(csvImportForm.accountCategory || '').trim()
-    const currentBalanceRaw = String(csvImportForm.currentBalance || '').trim()
-    const parsedCurrentBalance = Number(currentBalanceRaw)
-
-    if (!institutionName || !accountName || !accountCategory || !currentBalanceRaw || Number.isNaN(parsedCurrentBalance)) {
+    if (!institutionName || !accountName || !accountCategory) {
       setCredentialsError(text.connectionsCsvValidationError || 'Fill Institution Name, Account Name and Account Category.')
       if (manualCsvFileInputRef.current) {
         manualCsvFileInputRef.current.value = ''
@@ -578,7 +825,6 @@ function ConnectionsPage({
         institutionName,
         accountName,
         accountCategory,
-        currentBalance: parsedCurrentBalance,
         csvContent,
       })
 
@@ -616,12 +862,18 @@ function ConnectionsPage({
       return
     }
 
+    const parsedTransactionDate = toYearMonthDay(manualTransactionForm.date)
+    if (!parsedTransactionDate) {
+      setManualTransactionError(text.connectionsTransactionDateValidation || 'Enter a valid date in DD/MM/YYYY format.')
+      return
+    }
+
     const saved = appendManualWalletTransaction({
       connectionId: expandedManualAccountId,
       description,
       amount: parsedAmount,
       type: manualTransactionForm.type,
-      date: manualTransactionForm.date,
+      date: parsedTransactionDate,
       text,
     })
 
@@ -901,21 +1153,6 @@ function ConnectionsPage({
                         </button>
                       </div>
                     </div>
-                    <label className="block">
-                      <span className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsPhysicalBalanceLabel || 'Current Balance'}</span>
-                      <input
-                        type="number"
-                        required
-                        value={csvImportForm.currentBalance}
-                        onChange={(event) => {
-                          setCsvImportForm((current) => ({ ...current, currentBalance: event.target.value }))
-                          if (credentialsError) setCredentialsError('')
-                        }}
-                        placeholder="0.00"
-                        step="0.01"
-                        className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
-                      />
-                    </label>
                   </div>
 
                   <div className={`rounded-lg border-2 border-dashed p-8 text-center ${isLightMode ? 'border-zinc-300 bg-zinc-50' : 'border-zinc-700 bg-zinc-900/30'}`}>
@@ -979,6 +1216,20 @@ function ConnectionsPage({
                         }}
                         placeholder="0.00"
                         step="0.01"
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsTransactionDateLabel || 'Date'}</span>
+                      <input
+                        type="date"
+                        lang="pt-BR"
+                        value={physicalWalletForm.date}
+                        onChange={(event) => {
+                          setPhysicalWalletForm((current) => ({ ...current, date: event.target.value }))
+                          if (credentialsError) setCredentialsError('')
+                        }}
                         className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
                       />
                     </label>
@@ -1238,6 +1489,7 @@ function ConnectionsPage({
                                 <span className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.connectionsTransactionDateLabel || 'Date'}</span>
                                 <input
                                   type="date"
+                                  lang="pt-BR"
                                   value={manualTransactionForm.date}
                                   onChange={(event) => setManualTransactionForm((current) => ({ ...current, date: event.target.value }))}
                                   className={`w-full rounded-lg border px-3 py-2 text-sm ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100'}`}
@@ -1281,7 +1533,7 @@ function ConnectionsPage({
                                   const rawDate = transaction?.date || transaction?.createdAt
                                   const parsedDate = rawDate ? new Date(rawDate) : null
                                   const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                    ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                    ? formatCalendarDate(parsedDate)
                                     : '--'
 
                                   return (
@@ -1319,7 +1571,7 @@ function ConnectionsPage({
                                   const rawDate = transaction?.date || transaction?.createdAt
                                   const parsedDate = rawDate ? new Date(rawDate) : null
                                   const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                    ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                    ? formatCalendarDate(parsedDate)
                                     : '--'
 
                                   return (
@@ -1409,7 +1661,7 @@ function ConnectionsPage({
                                 const rawDate = transaction?.date || transaction?.createdAt
                                 const parsedDate = rawDate ? new Date(rawDate) : null
                                 const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                  ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                  ? formatCalendarDate(parsedDate)
                                   : '--'
 
                                 return (
@@ -1498,7 +1750,7 @@ function ConnectionsPage({
                                 const rawDate = transaction?.date || transaction?.createdAt
                                 const parsedDate = rawDate ? new Date(rawDate) : null
                                 const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
-                                  ? new Intl.DateTimeFormat(text.connectionsBackLabel === 'Voltar' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit' }).format(parsedDate)
+                                  ? formatCalendarDate(parsedDate)
                                   : '--'
 
                                 return (
@@ -1544,50 +1796,272 @@ function ConnectionsPage({
         className="hidden"
       />
 
-      {!selectedConnection && (
+      {isViewDataOpen && !selectedConnection && (
+        <article className={`${glassCardClass} w-full overflow-hidden p-4 md:p-5`}>
+          <button
+            type="button"
+            onClick={handleCloseViewData}
+            className={`mb-5 inline-flex items-center gap-2 text-sm ${secondaryTextClass} ${isLightMode ? 'hover:text-zinc-700' : 'hover:text-zinc-300'}`}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span>{text.connectionsBack || text.navConnections}</span>
+          </button>
+
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${isLightMode ? 'bg-blue-100 text-blue-700' : 'bg-blue-900/40 text-blue-300'}`}>
+                <Eye className="h-5 w-5" />
+              </span>
+              <div>
+                <p className={`text-[14px] font-semibold ${primaryTextClass}`}>{text?.settingsViewDataLabel || 'View data'}</p>
+                <p className={`mt-1 text-[12px] ${secondaryTextClass}`}>
+                  {parsedStoredDataPreview?.generatedAt
+                    ? formatCalendarDateTime(parsedStoredDataPreview.generatedAt)
+                    : '--'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className={`rounded-xl border p-4 ${isLightMode ? 'border-zinc-300/60 bg-zinc-50/60' : 'border-zinc-700/60 bg-zinc-900/35'}`}>
+              <h4 className={`mb-3 text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
+                {text?.settingsStoredDataLabel || 'Stored data'}
+              </h4>
+
+              <pre className={`max-h-[480px] overflow-auto whitespace-pre-wrap break-all rounded-lg border p-3 text-[11px] leading-5 ${isLightMode ? 'border-zinc-300/70 bg-white text-zinc-700' : 'border-zinc-700/70 bg-zinc-900/40 text-zinc-200'}`}>
+                {storedDataPreview}
+              </pre>
+            </div>
+          </div>
+        </article>
+      )}
+
+      {!selectedConnection && !isViewDataOpen && (
+      <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-3">
+        <article className={`${glassCardClass} w-full overflow-hidden xl:col-span-2`}>
+          <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 ${cardSubtleDividerClass}`}>
+            <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
+              <UserCircle2 className="h-4 w-4 text-[#1f67ff]" />
+              <h3>{text?.settingsUserDataTitle || 'User data'}</h3>
+            </div>
+
+            <div className="flex h-8 w-[84px] items-center justify-end">
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                className={`inline-flex h-8 items-center justify-center rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 ${hasUnsavedProfileChanges ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+              >
+                {text?.save || 'Save'}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4 p-4 md:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                  className="group relative inline-flex h-12 w-12 items-center justify-center rounded-full"
+                  title={text?.profileUploadPhoto || 'Upload Photo'}
+                >
+                  {profilePhotoDraft ? (
+                    <img src={profilePhotoDraft} alt={profileNameDraft || userProfile?.name || 'Username'} className="h-12 w-12 rounded-full object-cover" />
+                  ) : (
+                    <span className={`inline-flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${isLightMode ? 'bg-zinc-200 text-zinc-700' : 'bg-zinc-800 text-zinc-300'}`}>
+                      {userInitials || 'UN'}
+                    </span>
+                  )}
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Pencil className="h-4 w-4 text-white" />
+                  </span>
+                </button>
+
+                <div className="group relative">
+                  <input
+                    ref={profileNameInputRef}
+                    type="text"
+                    value={profileNameDraft}
+                    onChange={(event) => {
+                      setProfileNameDraft(event.target.value)
+                    }}
+                    onFocus={() => setIsEditingProfileName(true)}
+                    onBlur={() => {
+                      setProfileNameDraft((current) => String(current || '').trim())
+                      setIsEditingProfileName(false)
+                    }}
+                    placeholder={text?.profilePlaceholder || 'Username'}
+                    className={`w-[220px] max-w-[55vw] rounded-lg border px-3 py-2 pr-9 text-sm font-medium transition ${isLightMode ? 'border-zinc-300 bg-white text-zinc-900 hover:border-zinc-400 focus:border-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/80 text-zinc-100 hover:border-zinc-600 focus:border-[#1f67ff]'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingProfileName(true)
+                      profileNameInputRef.current?.focus()
+                    }}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 ${isEditingProfileName ? 'opacity-100' : ''} ${secondaryTextClass}`}
+                    aria-label={text?.profileEditName || 'Edit name'}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <input
+                  ref={profilePhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePhotoChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className={`text-xs ${secondaryTextClass}`}>{text?.profilePhotoHint || 'JPG, PNG up to 2MB'}</p>
+              {profilePhotoError && <p className="text-xs text-rose-400">{profilePhotoError}</p>}
+            </div>
+
+            <div className={`border-t pt-3 ${cardSubtleDividerClass}`}>
+              <button
+                type="button"
+                disabled
+                aria-label={text?.settingsUserInformationLabel || 'User information'}
+                className={`inline-flex items-center gap-1 bg-transparent p-0 text-[12px] ${secondaryTextClass} transition-colors ${isLightMode ? 'hover:text-zinc-700' : 'hover:text-zinc-300'} cursor-not-allowed border-0`}
+                title={text?.settingsUserInformationLabel || 'User information'}
+              >
+                <span>{text?.settingsUserInformationLabel || 'User information'}</span>
+                <ChevronRight className="h-[18px] w-[18px]" />
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article className={`${glassCardClass} w-full overflow-hidden`}>
+          <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 ${cardSubtleDividerClass}`}>
+            <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
+              <Cloud className="h-4 w-4 text-[#1f67ff]" />
+              <h3>
+              {text?.settingsDataActionsTitle || 'Data actions'}
+              </h3>
+            </div>
+
+            <div className="h-8 w-[84px]" aria-hidden="true" />
+          </div>
+
+          <div className="space-y-3 p-4 md:p-5">
+            <p className={`text-xs ${secondaryTextClass}`}>
+              {text?.settingsDataActionsDescription || 'Manage backup and account data actions.'}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleViewData}
+                aria-label={text?.settingsViewDataLabel || 'View data'}
+                className={`inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition ${isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
+                title={text?.settingsViewDataLabel || 'View data'}
+              >
+                <Eye className="h-4 w-4" />
+                <span>{text?.settingsViewDataLabel || 'View data'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveData}
+                aria-label={text.connectionsRemoveDataLabel || 'Remove data'}
+                className={`inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition ${isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
+                title={text.connectionsRemoveDataLabel || 'Remove data'}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>{text.connectionsRemoveDataLabel || 'Remove data'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={exportBackup}
+                aria-label={text.connectionsExportBackup || 'Export'}
+                className={`inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition ${isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
+                title="Download backup of your connections and profile"
+              >
+                <Download className="h-4 w-4" />
+                <span>{text.connectionsExportBackup || 'Export'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={triggerFileInput}
+                aria-label={text.connectionsImportBackup || 'Import'}
+                className={`inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition ${isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
+                title="Restore backup from a JSON file"
+              >
+                <Upload className="h-4 w-4" />
+                <span>{text.connectionsImportBackup || 'Import'}</span>
+              </button>
+            </div>
+
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+
+            {backupImportFeedback && (
+              <div className={`rounded-lg px-4 py-2 text-center text-sm ${backupImportFeedbackType === 'success' ? (isLightMode ? 'bg-green-50 text-green-700' : 'bg-green-950/30 text-green-300') : backupImportFeedbackType === 'error' ? (isLightMode ? 'bg-red-50 text-red-600' : 'bg-red-950/30 text-red-300') : (isLightMode ? 'bg-blue-50 text-blue-600' : 'bg-blue-950/30 text-blue-300')}`}>
+                {backupImportFeedback}
+              </div>
+            )}
+          </div>
+        </article>
+      </div>
+      )}
+
+      {!selectedConnection && !isViewDataOpen && (
       <article className={`${glassCardClass} w-full overflow-hidden`}>
         <div className={`flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 ${cardSubtleDividerClass}`}>
           <div className="flex items-center gap-2">
             <Link2 className="h-[18px] w-[18px] text-[#1f67ff]" />
-            <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>{text.navConnections}</h3>
+            <h3 className={`text-xs font-semibold uppercase tracking-wider ${secondaryTextClass}`}>
+              {language === 'pt' ? 'Conexoes' : 'Connections'}
+            </h3>
             <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
               {connections.length} {text.connectionsActiveLabel}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
+            {isSelectionMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSelectAllConnections}
+                  aria-label={text.connectionsSelectAllLabel || 'Select all'}
+                  className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-400/50 bg-zinc-900/40 px-3 text-xs font-semibold text-zinc-100 transition hover:bg-zinc-800"
+                  disabled={connections.length === 0}
+                >
+                  {selectedConnectionIds.length === connections.length
+                    ? (text.connectionsCancelLabel || 'Cancel')
+                    : (text.connectionsSelectAllLabel || 'Select all')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteSelectedConnections}
+                  aria-label={text.connectionsDeleteSelectedLabel || 'Remove selected'}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
+                  disabled={selectedConnectionIds.length === 0}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden md:inline">{text.connectionsDeleteSelectedLabel || 'Remove selected'}</span>
+                </button>
+              </>
+            )}
             <button
               type="button"
-              onClick={handleRemoveAllConnections}
-              aria-label={text.connectionsDeleteAllLabel || 'Remover todos'}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
-              title={text.connectionsDeleteAllHint || 'Remove all available connections'}
-              disabled={connections.length === 0}
+              onClick={() => {
+                if (isSelectionMode) {
+                  resetSelectionMode()
+                  return
+                }
+
+                setIsSelectionMode(true)
+              }}
+              aria-label={text.connectionsSelectionLabel || 'Selection'}
+              className={`inline-flex h-8 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition ${isSelectionMode ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.25)] text-[#93c5fd]' : isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
             >
-              <Trash2 className="h-4 w-4" />
-              <span className="hidden md:inline">{text.connectionsDeleteAllLabel || 'Remover todos'}</span>
+              {isSelectionMode ? (text.connectionsCancelLabel || 'Cancel') : (text.connectionsSelectionLabel || 'Selection')}
             </button>
-            <button
-              type="button"
-              onClick={exportBackup}
-              aria-label={text.connectionsExportBackup || 'Export'}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/50 bg-blue-500/10 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 md:w-auto md:gap-1.5 md:px-3"
-              title="Download backup of your connections and data"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden md:inline">{text.connectionsExportBackup || 'Export'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={triggerFileInput}
-              aria-label={text.connectionsImportBackup || 'Import'}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-green-500/50 bg-green-500/10 text-xs font-semibold text-green-400 transition hover:bg-green-500/20 md:w-auto md:gap-1.5 md:px-3"
-              title="Restore backup from a JSON file"
-            >
-              <Upload className="h-4 w-4" />
-              <span className="hidden md:inline">{text.connectionsImportBackup || 'Import'}</span>
-            </button>
-            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
             <button
               type="button"
               onClick={openCredentialsModal}
@@ -1599,12 +2073,6 @@ function ConnectionsPage({
             </button>
           </div>
         </div>
-
-        {backupImportFeedback && (
-          <div className={`px-4 py-2 text-center text-sm ${backupImportFeedbackType === 'success' ? (isLightMode ? 'bg-green-50 text-green-700' : 'bg-green-950/30 text-green-300') : backupImportFeedbackType === 'error' ? (isLightMode ? 'bg-red-50 text-red-600' : 'bg-red-950/30 text-red-300') : (isLightMode ? 'bg-blue-50 text-blue-600' : 'bg-blue-950/30 text-blue-300')}`}>
-            {backupImportFeedback}
-          </div>
-        )}
 
         <div className="p-4">
           {connections.length === 0 ? (
@@ -1619,7 +2087,27 @@ function ConnectionsPage({
                 const isManualCard = isPhysicalWalletCard || isManualImportCard
 
                 return (
-                  <article key={entry.itemId} className={`card-interactive w-full rounded-xl border bg-transparent p-4 hover:-translate-y-0.5 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
+                  <article key={entry.itemId} className={`card-interactive relative w-full rounded-xl border bg-transparent p-4 hover:-translate-y-0.5 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
+                    {isSelectionMode && (
+                      <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleConnectionSelection(entry.itemId)}
+                          className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-[10px] font-bold ${selectedConnectionIds.includes(entry.itemId) ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.85)] text-white' : isLightMode ? 'border-zinc-300 bg-white text-zinc-700' : 'border-zinc-700 bg-zinc-900 text-zinc-300'}`}
+                          aria-label={selectedConnectionIds.includes(entry.itemId) ? 'Unselect connection' : 'Select connection'}
+                        >
+                          {selectedConnectionIds.includes(entry.itemId) ? '✓' : ''}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteConnectionFromGrid(entry)}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20"
+                          aria-label={text.connectionsDelete || 'Remove'}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                     <div className="mb-4 flex items-start justify-between">
                       {logo ? (
                         <img
@@ -1664,6 +2152,12 @@ function ConnectionsPage({
                       <button
                         type="button"
                         onClick={() => {
+                          if (isSelectionMode) {
+                            handleToggleConnectionSelection(entry.itemId)
+                            return
+                          }
+
+                          setIsViewDataOpen(false)
                           setSelectedConnectionItemId(entry.itemId)
                           setExpandedManualAccountId(null)
                           setExpandedPluggyAccountId(null)
@@ -1672,8 +2166,8 @@ function ConnectionsPage({
                         }}
                         className={`inline-flex items-center gap-1 text-[12px] ${secondaryTextClass} transition-colors ${isLightMode ? 'hover:text-zinc-700' : 'hover:text-zinc-300'}`}
                       >
-                        <span>{text.connectionsSeeDetails}</span>
-                        <ChevronRight className="h-[18px] w-[18px]" />
+                        <span>{isSelectionMode ? (text.connectionsSelectionLabel || 'Selection') : text.connectionsSeeDetails}</span>
+                        {!isSelectionMode && <ChevronRight className="h-[18px] w-[18px]" />}
                       </button>
                     </div>
                   </article>
@@ -1690,4 +2184,4 @@ function ConnectionsPage({
   )
 }
 
-export default ConnectionsPage
+export default SettingsPage

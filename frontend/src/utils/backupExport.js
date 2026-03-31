@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   MANUAL_CONNECTIONS: 'wallet_hub_manual_connections',
   MANUAL_WALLET_TRANSACTIONS: 'wallet_hub_manual_wallet_transactions',
   PLUGGY_CREDENTIALS: 'wallet-hub-pluggy-credentials-v1',
+  USER_PROFILE: 'wallet_hub_user_profile',
 }
 
 /**
@@ -15,12 +16,13 @@ const STORAGE_KEYS = {
  */
 const getBackupData = () => {
   const backupData = {
-    version: '1.3.0',
+    version: '1.4.0',
     exportDate: new Date().toISOString(),
     data: {
       manualConnections: null,
       manualWalletTransactions: null,
       pluggyCredentials: null,
+      userProfile: null,
     },
   }
 
@@ -52,6 +54,16 @@ const getBackupData = () => {
     }
   } catch (error) {
     console.error('Error retrieving Pluggy credentials:', error)
+  }
+
+  // Retrieve user profile
+  try {
+    const userProfile = localStorage.getItem(STORAGE_KEYS.USER_PROFILE)
+    if (userProfile) {
+      backupData.data.userProfile = JSON.parse(userProfile)
+    }
+  } catch (error) {
+    console.error('Error retrieving user profile:', error)
   }
 
   return backupData
@@ -153,6 +165,15 @@ export const importBackup = (file, language = 'pt') => {
             localStorage.setItem(STORAGE_KEYS.PLUGGY_CREDENTIALS, JSON.stringify(data.pluggyCredentials))
           } catch (error) {
             console.error('Error saving Pluggy credentials:', error)
+          }
+        }
+
+        // Restore user profile
+        if (data.userProfile) {
+          try {
+            localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(data.userProfile))
+          } catch (error) {
+            console.error('Error saving user profile:', error)
           }
         }
 
