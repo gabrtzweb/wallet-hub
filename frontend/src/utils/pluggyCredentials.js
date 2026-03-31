@@ -90,6 +90,12 @@ export const removeStoredPluggyItemId = (itemIdToRemove) => {
 
   const nextItemIds = credentials.itemIds.filter((itemId) => itemId !== normalizedTarget)
 
+  // If no item IDs remain, clear the entire credentials
+  if (nextItemIds.length === 0) {
+    localStorage.removeItem(PLUGGY_STORAGE_KEY)
+    return null
+  }
+
   localStorage.setItem(
     PLUGGY_STORAGE_KEY,
     JSON.stringify({

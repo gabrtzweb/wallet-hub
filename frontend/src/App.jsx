@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage'
 import FlowPage from './pages/FlowPage'
 import HomePage from './pages/HomePage'
 import OverviewPage from './pages/OverviewPage'
+import PlanningPage from './pages/PlanningPage'
 import { calculateFinancialHealthFromFinancialAccounts } from './utils/financialHealthCalculator'
 
 function Dashboard() {
@@ -47,6 +48,9 @@ function Dashboard() {
     } else if (path === '/assets') {
       dynamicTitle = `Dashboard - ${text.navAssets}`
       dynamicDescription = text.assetsSubtitle
+    } else if (path === '/planning') {
+      dynamicTitle = `Dashboard - ${text.navPlanning}`
+      dynamicDescription = text.planningSubtitle
     } else if (path === '/settings') {
       dynamicTitle = `Dashboard - ${text.navConnections}`
       dynamicDescription = text.connectionsSubtitle
@@ -70,6 +74,7 @@ function Dashboard() {
   const isOverviewView = location.pathname === '/overview'
   const isFlowView = location.pathname === '/flow'
   const isAssetsView = location.pathname === '/assets'
+  const isPlanningView = location.pathname === '/planning'
   const isSettingsView = location.pathname === '/settings'
 
   const {
@@ -260,8 +265,8 @@ function Dashboard() {
   const investmentBarFillClass = 'bg-[#60a5fa]'
 
   const glassCardClass = isLightMode
-    ? 'card-interactive rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px] hover:-translate-y-0.5'
-    : 'card-interactive rounded-xl border border-[rgba(233,240,255,0.20)] bg-[rgba(8,10,15,0.10)] backdrop-blur-[8px] hover:-translate-y-0.5'
+    ? 'card-interactive rounded-xl border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
+    : 'card-interactive rounded-xl border border-[rgba(233,240,255,0.20)] bg-[rgba(8,10,15,0.10)] backdrop-blur-[8px]'
 
   const headerGlassClass = isLightMode
     ? 'fixed left-0 right-0 top-0 z-50 border border-[rgba(8,10,15,0.08)] bg-[rgba(233,240,255,0.10)] backdrop-blur-[8px]'
@@ -293,6 +298,8 @@ function Dashboard() {
     ? text.flowTitle
     : isAssetsView
       ? text.assetsTitle
+      : isPlanningView
+        ? text.planningTitle
       : isSettingsView
         ? text.connectionsTitle
         : text.overview
@@ -300,6 +307,8 @@ function Dashboard() {
     ? text.flowSubtitle
     : isAssetsView
       ? text.assetsSubtitle
+      : isPlanningView
+        ? text.planningSubtitle
       : isSettingsView
         ? text.connectionsSubtitle
         : text.subtitle
@@ -343,6 +352,7 @@ function Dashboard() {
         isOverviewView={isOverviewView}
         isFlowView={isFlowView}
         isAssetsView={isAssetsView}
+        isPlanningView={isPlanningView}
         themeToggleClass={themeToggleClass}
         setTheme={setTheme}
         languageWrapperClass={languageWrapperClass}
@@ -513,6 +523,16 @@ function Dashboard() {
                       investmentsTotal={investmentsTotal}
                       formatMoney={formatMoney}
                       isLightMode={isLightMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/planning"
+                  element={
+                    <PlanningPage
+                      glassCardClass={glassCardClass}
+                      primaryTextClass={primaryTextClass}
+                      text={text}
                     />
                   }
                 />

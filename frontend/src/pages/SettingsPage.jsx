@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, CirclePlus, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Pencil, Plus, TrendingUp, Trash2, Upload, UserCircle2, Wallet, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Check, CheckCheck, ChevronLeft, ChevronRight, CirclePlus, Clock3, Cloud, Copy, CreditCard, Download, Eye, EyeOff, FileText, Landmark, Link2, Pencil, Plus, TrendingUp, Trash2, Upload, UserCircle2, Wallet, X } from 'lucide-react'
 import { getBankLogoFallbackUrl, getBankLogoUrl } from '../utils/logoResolver'
 import { getInstitutionName, getInvestmentValue } from '../config/dashboardConfig'
 import { exportBackup, importBackup } from '../utils/backupExport'
@@ -214,6 +214,59 @@ function SettingsPage({
       window.removeEventListener('wallet-hub-user-profile-updated', syncProfile)
     }
   }, [])
+
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key !== 'Escape') return
+
+      if (isCredentialsModalOpen) {
+        setIsCredentialsModalOpen(false)
+        setCsvImportForm({ institutionName: '', accountName: '', accountCategory: 'Benefícios' })
+        setPhysicalWalletForm({ walletName: '', currentBalance: '', date: getTodayInputDate() })
+        setCredentialsError('')
+        setShowClientSecret(false)
+        setCopiedField('')
+        setConnectionFlowStep('selection')
+        return
+      }
+
+      if (isManualTransactionFormOpen) {
+        setIsManualTransactionFormOpen(false)
+        setManualTransactionError('')
+        return
+      }
+
+      if (selectedConnectionItemId) {
+        setSelectedConnectionItemId(null)
+        setExpandedManualAccountId(null)
+        setExpandedPluggyAccountId(null)
+        setIsManualTransactionFormOpen(false)
+        setManualTransactionError('')
+        return
+      }
+
+      if (isViewDataOpen) {
+        setIsViewDataOpen(false)
+        return
+      }
+
+      if (isSelectionMode) {
+        setIsSelectionMode(false)
+        setSelectedConnectionIds([])
+      }
+    }
+
+    window.addEventListener('keydown', handleEscapeKey)
+    return () => {
+      window.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [
+    isCredentialsModalOpen,
+    isManualTransactionFormOpen,
+    selectedConnectionItemId,
+    isViewDataOpen,
+    isSelectionMode,
+  ])
 
   const handleProfilePhotoChange = (event) => {
     const file = event.target.files?.[0]
@@ -2027,23 +2080,24 @@ function SettingsPage({
                 <button
                   type="button"
                   onClick={handleSelectAllConnections}
-                  aria-label={text.connectionsSelectAllLabel || 'Select all'}
-                  className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-400/50 bg-zinc-900/40 px-3 text-xs font-semibold text-zinc-100 transition hover:bg-zinc-800"
+                  aria-label={selectedConnectionIds.length === connections.length ? (text.connectionsCancelLabel || 'Cancel') : (text.connectionsSelectAllLabel || 'Select all')}
+                  title={selectedConnectionIds.length === connections.length ? (text.connectionsCancelLabel || 'Cancel') : (text.connectionsSelectAllLabel || 'Select all')}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-400/50 bg-zinc-900/40 text-xs font-semibold text-zinc-100 transition hover:bg-zinc-800"
                   disabled={connections.length === 0}
                 >
                   {selectedConnectionIds.length === connections.length
-                    ? (text.connectionsCancelLabel || 'Cancel')
-                    : (text.connectionsSelectAllLabel || 'Select all')}
+                    ? <X className="h-4 w-4" />
+                    : <CheckCheck className="h-4 w-4" />}
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteSelectedConnections}
                   aria-label={text.connectionsDeleteSelectedLabel || 'Remove selected'}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 md:w-auto md:gap-1.5 md:px-3"
+                  title={text.connectionsDeleteSelectedLabel || 'Remove selected'}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/50 bg-rose-500/10 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
                   disabled={selectedConnectionIds.length === 0}
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span className="hidden md:inline">{text.connectionsDeleteSelectedLabel || 'Remove selected'}</span>
                 </button>
               </>
             )}
@@ -2057,10 +2111,11 @@ function SettingsPage({
 
                 setIsSelectionMode(true)
               }}
-              aria-label={text.connectionsSelectionLabel || 'Selection'}
-              className={`inline-flex h-8 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition ${isSelectionMode ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.25)] text-[#93c5fd]' : isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
+              aria-label={isSelectionMode ? (text.connectionsCancelLabel || 'Cancel') : (text.connectionsSelectionLabel || 'Selection')}
+              title={isSelectionMode ? (text.connectionsCancelLabel || 'Cancel') : (text.connectionsSelectionLabel || 'Selection')}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-semibold transition ${isSelectionMode ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.25)] text-[#93c5fd]' : isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
             >
-              {isSelectionMode ? (text.connectionsCancelLabel || 'Cancel') : (text.connectionsSelectionLabel || 'Selection')}
+              {isSelectionMode ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
             </button>
             <button
               type="button"
@@ -2087,27 +2142,7 @@ function SettingsPage({
                 const isManualCard = isPhysicalWalletCard || isManualImportCard
 
                 return (
-                  <article key={entry.itemId} className={`card-interactive relative w-full rounded-xl border bg-transparent p-4 hover:-translate-y-0.5 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
-                    {isSelectionMode && (
-                      <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleConnectionSelection(entry.itemId)}
-                          className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-[10px] font-bold ${selectedConnectionIds.includes(entry.itemId) ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.85)] text-white' : isLightMode ? 'border-zinc-300 bg-white text-zinc-700' : 'border-zinc-700 bg-zinc-900 text-zinc-300'}`}
-                          aria-label={selectedConnectionIds.includes(entry.itemId) ? 'Unselect connection' : 'Select connection'}
-                        >
-                          {selectedConnectionIds.includes(entry.itemId) ? '✓' : ''}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteConnectionFromGrid(entry)}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20"
-                          aria-label={text.connectionsDelete || 'Remove'}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
+                  <article key={entry.itemId} className={`card-interactive relative w-full rounded-xl border bg-transparent p-4 ${isLightMode ? 'border-zinc-300/60' : 'border-zinc-700/60'}`}>
                     <div className="mb-4 flex items-start justify-between">
                       {logo ? (
                         <img
@@ -2131,7 +2166,30 @@ function SettingsPage({
                         </span>
                       )}
 
-                      <span className={`inline-flex h-2.5 w-2.5 rounded-full motion-safe:animate-pulse ${isManualCard ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]'}`} />
+                      {isSelectionMode ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleConnectionSelection(entry.itemId)}
+                            className={`inline-flex h-6 w-6 items-center justify-center rounded-md border transition ${selectedConnectionIds.includes(entry.itemId) ? 'border-[#1f67ff] bg-[rgba(31,103,255,0.85)] text-white' : isLightMode ? 'border-zinc-300 bg-white text-zinc-700 hover:border-[#1f67ff] hover:text-[#1f67ff]' : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-[#1f67ff] hover:text-[#93c5fd]'}`}
+                            aria-label={selectedConnectionIds.includes(entry.itemId) ? 'Unselect connection' : 'Select connection'}
+                            title={selectedConnectionIds.includes(entry.itemId) ? 'Unselect connection' : 'Select connection'}
+                          >
+                            {selectedConnectionIds.includes(entry.itemId) ? <Check className="h-3.5 w-3.5" /> : null}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteConnectionFromGrid(entry)}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20"
+                            aria-label={text.connectionsDelete || 'Remove'}
+                            title={text.connectionsDelete || 'Remove'}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={`inline-flex h-2.5 w-2.5 rounded-full motion-safe:animate-pulse ${isManualCard ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]'}`} />
+                      )}
                     </div>
 
                     <p className={`text-[14px] font-semibold ${primaryTextClass}`}>
@@ -2152,11 +2210,6 @@ function SettingsPage({
                       <button
                         type="button"
                         onClick={() => {
-                          if (isSelectionMode) {
-                            handleToggleConnectionSelection(entry.itemId)
-                            return
-                          }
-
                           setIsViewDataOpen(false)
                           setSelectedConnectionItemId(entry.itemId)
                           setExpandedManualAccountId(null)
@@ -2164,10 +2217,14 @@ function SettingsPage({
                           setIsManualTransactionFormOpen(false)
                           setManualTransactionError('')
                         }}
-                        className={`inline-flex items-center gap-1 text-[12px] ${secondaryTextClass} transition-colors ${isLightMode ? 'hover:text-zinc-700' : 'hover:text-zinc-300'}`}
+                        disabled={isSelectionMode}
+                        aria-disabled={isSelectionMode}
+                        aria-label={text.connectionsSeeDetails || 'See details'}
+                        title={text.connectionsSeeDetails || 'See details'}
+                        className={`inline-flex items-center gap-1 text-[12px] ${secondaryTextClass} transition-colors ${isSelectionMode ? 'cursor-not-allowed opacity-50' : isLightMode ? 'hover:text-zinc-700' : 'hover:text-zinc-300'}`}
                       >
-                        <span>{isSelectionMode ? (text.connectionsSelectionLabel || 'Selection') : text.connectionsSeeDetails}</span>
-                        {!isSelectionMode && <ChevronRight className="h-[18px] w-[18px]" />}
+                        <span>{text.connectionsSeeDetails}</span>
+                        <ChevronRight className="h-[18px] w-[18px]" />
                       </button>
                     </div>
                   </article>

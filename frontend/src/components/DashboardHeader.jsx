@@ -11,6 +11,7 @@ function DashboardHeader({
   isOverviewView,
   isFlowView,
   isAssetsView,
+  isPlanningView,
   themeToggleClass,
   setTheme,
   languageWrapperClass,
@@ -129,6 +130,9 @@ function DashboardHeader({
               <button onClick={() => navigate('/assets')} className={isAssetsView ? navActiveClass : navInactiveClass}>
                 {text.navAssets}
               </button>
+              <button onClick={() => navigate('/planning')} className={isPlanningView ? navActiveClass : navInactiveClass}>
+                {text.navPlanning}
+              </button>
             </nav>
           </div>
 
@@ -189,6 +193,9 @@ function DashboardHeader({
             </button>
             <button onClick={() => handleNavigate('/assets')} className={isAssetsView ? mobileNavActiveClass : mobileNavInactiveClass}>
               {text.navAssets}
+            </button>
+            <button onClick={() => handleNavigate('/planning')} className={isPlanningView ? mobileNavActiveClass : mobileNavInactiveClass}>
+              {text.navPlanning}
             </button>
           </nav>
         )}

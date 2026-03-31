@@ -226,12 +226,32 @@ export const getStoredManualImportConnections = () => {
 }
 
 export const saveStoredManualConnections = (connections) => {
+  // Get old wallet connections BEFORE making changes
+  const oldWalletConnections = parseStoredConnections().filter((entry) => isManualWalletConnection(entry))
+  const oldWalletIds = new Set(oldWalletConnections.map((entry) => entry?.id).filter(Boolean))
+
   const existingNonWalletConnections = parseStoredConnections().filter((entry) => !isManualWalletConnection(entry))
   const walletConnections = Array.isArray(connections)
     ? connections.filter((entry) => isManualWalletConnection(entry) && entry?.itemId)
     : []
 
   saveStoredConnections([...existingNonWalletConnections, ...walletConnections])
+
+  // Clean up transactions for deleted wallet connections
+  const newWalletIds = new Set(walletConnections.map((entry) => entry?.id).filter(Boolean))
+  const map = parseTransactionsMap()
+  let hasTransactionChanges = false
+
+  oldWalletIds.forEach((walletId) => {
+    if (!newWalletIds.has(walletId) && map[walletId]) {
+      delete map[walletId]
+      hasTransactionChanges = true
+    }
+  })
+
+  if (hasTransactionChanges) {
+    saveTransactionsMap(map)
+  }
 }
 
 export const toPhysicalWalletAccount = (connection) => ({
